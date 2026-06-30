@@ -1,408 +1,744 @@
-/* Otis Companion - Conversational Design */
+import React, { useState, useEffect } from 'react';
+import './App.css';
 
-:root {
-  --primary: #1a1a1a;
-  --secondary: #6b7280;
-  --light: #f9fafb;
-  --border: #e5e5e5;
-  --warm: #f5f5f5;
+// Types
+interface UserProfile {
+  name: string;
+}
+
+interface DailyMemory {
+  date: string;
+  greeting: string;
+  howTheyFelt: string;
+  userNotes?: string;
+  followUpQuestion?: string;
+  followUpAnswer?: string;
+  movementRecommendation: string;
+  beforeMovement: string;
+  afterMovement: string;
+  completionNote?: string;
+}
+
+interface Memory {
+  profile: UserProfile | null;
+  history: DailyMemory[];
+}
+
+interface Movement {
+  id: string;
+  name: string;
+  duration: number;
+  narration: string[]; // Each narration step
+  cues: string[];
+}
+
+// Movement Library (Small, Intentional)
+const MOVEMENTS: Record<string, Movement> = {
+  upper_back: {
+    id: 'upper_back',
+    name: 'Upper Back Release',
+    duration: 5,
+    narration: [
+      "Let's start with your upper back.",
+      "Stand or sit tall. Feel your shoulders for a moment.",
+      "Now gently roll them back. Once, twice, three times.",
+      "Let them drop. Feel the difference?",
+      "Good. Now clasp your hands behind you, if that works.",
+      "Gently press down and open your chest.",
+      "Breathe here. You're waking up the muscles that got tight.",
+      "Beautiful. That's the foundation."
+    ],
+    cues: [
+      'Stand or sit comfortably',
+      'Gentle shoulder rolls, moving slowly',
+      'Feel your upper back as you move',
+      'No forcing—just noticing'
+    ]
+  },
   
-  --spacing-xs: 0.5rem;
-  --spacing-sm: 1rem;
-  --spacing-md: 1.5rem;
-  --spacing-lg: 2rem;
-  --spacing-xl: 3rem;
-  
-  --radius: 12px;
-  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-}
+  hips_opening: {
+    id: 'hips_opening',
+    name: 'Hip Opening',
+    duration: 5,
+    narration: [
+      "Now let's wake up your hips.",
+      "Sitting or standing—whatever you prefer.",
+      "Gently make circles with your hips.",
+      "Slow and easy. Let your whole body relax into it.",
+      "You're undoing hours of sitting.",
+      "Feel how your lower back responds?",
+      "Keep going. Nice and slow.",
+      "You're doing this right."
+    ],
+    cues: [
+      'Slow hip circles, both directions',
+      'Feel your lower back release',
+      'Move from your center'
+    ]
+  },
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+  neck_gentle: {
+    id: 'neck_gentle',
+    name: 'Gentle Neck Release',
+    duration: 4,
+    narration: [
+      "Let's be gentle with your neck.",
+      "Sit tall. Eyes forward.",
+      "Slowly turn your head right. Hold for a breath.",
+      "Come back to center.",
+      "Now left. Same slowness.",
+      "You're just opening up the tension. Not stretching.",
+      "One more each way.",
+      "Notice how that feels."
+    ],
+    cues: [
+      'Slow, controlled head turns',
+      'No forcing or bouncing',
+      'Breathe deeply as you move'
+    ]
+  },
 
-html, body {
-  width: 100%;
-  height: 100%;
-  font-family: var(--font);
-  background-color: var(--light);
-  color: var(--primary);
-  line-height: 1.6;
-}
+  breathing: {
+    id: 'breathing',
+    name: 'Grounding Breath',
+    duration: 3,
+    narration: [
+      "Let's anchor this with your breath.",
+      "Sit comfortably. Close your eyes if you want.",
+      "Inhale for four counts.",
+      "Hold for four.",
+      "Exhale for four.",
+      "Hold for four.",
+      "Again. Slow and steady.",
+      "You're bringing this into your body."
+    ],
+    cues: [
+      'Slow, counted breathing',
+      '4-4-4-4 pattern',
+      'Feel your whole body calm'
+    ]
+  },
 
-#root {
-  width: 100%;
-  min-height: 100vh;
-}
+  walk_present: {
+    id: 'walk_present',
+    name: 'Mindful Movement',
+    duration: 5,
+    narration: [
+      "Let's finish with some easy movement.",
+      "Stand up. Shake out your hands.",
+      "Now walk slowly around your space.",
+      "Pay attention to how your feet meet the ground.",
+      "Swing your arms naturally.",
+      "You're not exercising. You're just moving with awareness.",
+      "Feel the difference between moving on autopilot and moving with intention?",
+      "That's what we're building together."
+    ],
+    cues: [
+      'Slow, mindful walking',
+      'Feel your feet, your arms, your breath',
+      'No rush'
+    ]
+  },
 
-.app {
-  width: 100%;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%);
-  padding: var(--spacing-md);
-}
+  morning_flow: {
+    id: 'morning_flow',
+    name: 'Morning Wake-Up',
+    duration: 7,
+    narration: [
+      "Let's wake up your whole body gently.",
+      "Start with some gentle stretching. Reach toward the ceiling.",
+      "Now touch your toes—not to get flexible, just to notice.",
+      "Gentle neck rolls. Not full circles. Just half circles.",
+      "Roll your shoulders back a few times.",
+      "Now let's do some hip circles. Moving your center around.",
+      "Feel how everything is connected?",
+      "That's the foundation of a good day."
+    ],
+    cues: [
+      'Gentle, full-body movement',
+      'Wake up without forcing',
+      'Notice how your body responds'
+    ]
+  }
+};
 
-.screen {
-  width: 100%;
-  max-width: 500px;
-  background: white;
-  border-radius: var(--radius);
-  padding: var(--spacing-lg);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-  min-height: 400px;
-  justify-content: space-between;
-}
+// Emotional States
+const EMOTIONAL_STATES = [
+  { id: 'energized', emoji: '😊', label: 'Ready to move', color: '#10b981' },
+  { id: 'normal', emoji: '😌', label: 'Pretty good', color: '#6b7280' },
+  { id: 'low', emoji: '😴', label: 'Low energy', color: '#f59e0b' },
+  { id: 'stiff', emoji: '😬', label: 'Stiff', color: '#f97316' },
+  { id: 'pain', emoji: '🤕', label: "Something's bothering me", color: '#ef4444' }
+];
 
-/* Greeting Screen */
-.greeting-screen {
-  justify-content: center;
-  gap: var(--spacing-lg);
-}
+// Storage
+const loadMemory = (): Memory => {
+  const stored = localStorage.getItem('otis_memory_v2');
+  if (stored) return JSON.parse(stored);
+  return { profile: null, history: [] };
+};
 
-/* Conversation Box */
-.conversation-box {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
+const saveMemory = (memory: Memory) => {
+  localStorage.setItem('otis_memory_v2', JSON.stringify(memory));
+};
 
-.otis-message {
-  font-size: 1.05rem;
-  line-height: 1.8;
-  color: var(--primary);
-  font-weight: 500;
-}
+const getTodayDate = (): string => {
+  return new Date().toISOString().split('T')[0];
+};
 
-.otis-message:first-child {
-  margin-top: 0;
-}
+const getYesterdayDate = (): string => {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  return yesterday.toISOString().split('T')[0];
+};
 
-/* Name Input */
-.name-input {
-  width: 100%;
-  padding: var(--spacing-sm);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 1rem;
-  font-family: var(--font);
-  background: white;
-  color: var(--primary);
-  transition: all 0.2s ease;
-}
-
-.name-input:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
-}
-
-.name-input::placeholder {
-  color: var(--secondary);
-  opacity: 0.6;
-}
-
-/* Buttons */
-button {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 1rem;
-  font-family: var(--font);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: white;
-  color: var(--primary);
-  font-weight: 500;
-  text-align: center;
-  white-space: nowrap;
-}
-
-button:hover:not(:disabled) {
-  border-color: var(--primary);
-  background: var(--warm);
-}
-
-button:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
-  font-weight: 600;
-  padding: 0.9rem 1.5rem;
-  font-size: 1.05rem;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #2a2a2a;
-  border-color: #2a2a2a;
-}
-
-.btn-secondary {
-  background: transparent;
-  border-color: var(--border);
-  color: var(--secondary);
-}
-
-.btn-secondary:hover {
-  background: var(--warm);
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-.button-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  width: 100%;
-}
-
-.button-group button {
-  width: 100%;
-}
-
-/* Emotional Buttons */
-.emotional-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  width: 100%;
-}
-
-.emotional-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 2px solid var(--border);
-  border-radius: 10px;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  width: 100%;
-  text-align: left;
-  font-size: 1rem;
-}
-
-.emotional-btn:hover {
-  border-color: var(--primary);
-  background: var(--warm);
-}
-
-.emotional-btn.active {
-  background: var(--light);
-}
-
-.emotional-btn .emoji {
-  font-size: 1.5rem;
-  line-height: 1;
-}
-
-.emotional-btn .label {
-  color: var(--primary);
-  font-weight: 500;
-}
-
-/* Conversation Screen */
-.conversation-screen {
-  min-height: 100%;
-}
-
-.wide-input {
-  width: 100%;
-  padding: var(--spacing-sm);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 1rem;
-  font-family: var(--font);
-  background: white;
-  color: var(--primary);
-  transition: all 0.2s ease;
-  min-height: 100px;
-  resize: vertical;
-}
-
-.wide-input:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
-}
-
-.wide-input::placeholder {
-  color: var(--secondary);
-  opacity: 0.6;
-}
-
-.text-input-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-md);
-}
-
-.text-input-section input {
-  padding: var(--spacing-sm);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 1rem;
-  font-family: var(--font);
-  background: white;
-  color: var(--primary);
-}
-
-.text-input-section input:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
-}
-
-.text-input-section input::placeholder {
-  color: var(--secondary);
-  opacity: 0.6;
-}
-
-/* Movement Screen */
-.movement-screen {
-  gap: var(--spacing-md);
-  min-height: 100%;
-  justify-content: flex-start;
-}
-
-.movement-header {
-  text-align: center;
-}
-
-.movement-header h2 {
-  font-size: 1.5rem;
-  margin-top: var(--spacing-md);
-}
-
-.step-indicator {
-  font-size: 0.85rem;
-  color: var(--secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.narration-box {
-  background: var(--warm);
-  padding: var(--spacing-lg);
-  border-radius: 12px;
-  border-left: 3px solid var(--primary);
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-.narration-text {
-  font-size: 1.1rem;
-  line-height: 1.8;
-  color: var(--primary);
-  font-weight: 500;
-}
-
-.cues-box {
-  background: var(--light);
-  padding: var(--spacing-md);
-  border-radius: 8px;
-}
-
-.cue {
-  font-size: 0.95rem;
-  color: var(--secondary);
-  margin: 0.5rem 0;
-  line-height: 1.6;
-}
-
-.cue:first-child {
-  margin-top: 0;
-}
-
-.cue:last-child {
-  margin-bottom: 0;
-}
-
-/* Closing Screen */
-.closing-screen {
-  justify-content: center;
-  text-align: center;
-  gap: var(--spacing-lg);
-}
-
-.closing-screen .otis-message:last-child {
-  font-style: italic;
-  opacity: 0.8;
-}
-
-/* Mobile Optimizations */
-@media (max-width: 480px) {
-  .screen {
-    border-radius: 0;
-    box-shadow: none;
-    min-height: 100vh;
-    padding: var(--spacing-md);
+// Greeting Generator
+const generateGreeting = (name: string, memory: DailyMemory | undefined): string => {
+  if (!memory) {
+    return `Morning, ${name}. Good to see you.`;
   }
 
-  .app {
-    padding: 0;
-    align-items: stretch;
+  // Reference yesterday's experience naturally
+  const hints = [
+    `Yesterday you said you felt ${memory.howTheyFelt}. How's today looking?`,
+    `You mentioned your ${memory.movementRecommendation.toLowerCase()} yesterday. That still on your mind today?`,
+    `Yesterday you completed a session. Ready to do it again?`,
+    `Good morning. Ready for another conversation?`
+  ];
+
+  return `Morning, ${name}. ${hints[Math.floor(Math.random() * hints.length)]}`;
+};
+
+// Components
+const Onboarding: React.FC<{ onComplete: (profile: UserProfile) => void }> = ({ onComplete }) => {
+  const [name, setName] = useState('');
+
+  const handleStart = () => {
+    if (name.trim()) {
+      onComplete({ name: name.trim() });
+    }
+  };
+
+  return (
+    <div className="screen greeting-screen">
+      <div className="conversation-box">
+        <p className="otis-message">
+          Hi! I'm Otis. I'm excited to get to know you.
+        </p>
+        <p className="otis-message">
+          Before we get started, what's your name?
+        </p>
+      </div>
+
+      <input
+        type="text"
+        placeholder="Your name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleStart();
+        }}
+        autoFocus
+        className="name-input"
+      />
+
+      <button onClick={handleStart} className="btn-primary" disabled={!name.trim()}>
+        Let's Begin
+      </button>
+    </div>
+  );
+};
+
+const Greeting: React.FC<{
+  name: string;
+  yesterday: DailyMemory | undefined;
+  onNext: () => void;
+}> = ({ name, yesterday, onNext }) => {
+  const greeting = generateGreeting(name, yesterday);
+
+  return (
+    <div className="screen greeting-screen">
+      <div className="conversation-box">
+        <p className="otis-message">{greeting}</p>
+      </div>
+
+      <button onClick={onNext} className="btn-primary">
+        Continue
+      </button>
+    </div>
+  );
+};
+
+const HowAreYou: React.FC<{
+  onStateSelect: (state: string, label: string) => void;
+}> = ({ onStateSelect }) => {
+  const [showText, setShowText] = useState(false);
+  const [selectedState, setSelectedState] = useState<string | null>(null);
+  const [freeText, setFreeText] = useState('');
+
+  const handleStateClick = (id: string, label: string) => {
+    setSelectedState(id);
+    setShowText(true);
+  };
+
+  const handleSubmit = () => {
+    const state = EMOTIONAL_STATES.find(s => s.id === selectedState);
+    if (state) {
+      // Combine the emotional state with free text
+      const fullResponse = freeText ? `${state.label} - ${freeText}` : state.label;
+      onStateSelect(state.id, fullResponse);
+    }
+  };
+
+  return (
+    <div className="screen conversation-screen">
+      <div className="conversation-box">
+        <p className="otis-message">How are you doing today?</p>
+      </div>
+
+      <div className="emotional-buttons">
+        {EMOTIONAL_STATES.map((state) => (
+          <button
+            key={state.id}
+            onClick={() => handleStateClick(state.id, state.label)}
+            className={`emotional-btn ${selectedState === state.id ? 'active' : ''}`}
+            style={selectedState === state.id ? { borderColor: state.color, backgroundColor: `${state.color}15` } : {}}
+          >
+            <span className="emoji">{state.emoji}</span>
+            <span className="label">{state.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {showText && selectedState && (
+        <div className="text-input-section">
+          <input
+            type="text"
+            placeholder="Anything else you want to tell me? (optional)"
+            value={freeText}
+            onChange={(e) => setFreeText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSubmit();
+            }}
+            autoFocus
+          />
+          <button onClick={handleSubmit} className="btn-primary">
+            Tell me more
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const FollowUp: React.FC<{
+  state: string;
+  onResponse: (response: string) => void;
+}> = ({ state, onResponse }) => {
+  const [text, setText] = useState('');
+
+  const emotionalState = EMOTIONAL_STATES.find(s => s.id === state);
+  const stateLabel = emotionalState?.label || state;
+
+  // Generate contextual follow-up based on emotional state
+  const getFollowUpQuestion = () => {
+    switch (state) {
+      case 'energized':
+        return "What are you doing today that has you energized?";
+      case 'normal':
+        return "Anything on your mind right now?";
+      case 'low':
+        return "What's making you feel low today?";
+      case 'stiff':
+        return "Where in your body are you feeling stiff?";
+      case 'pain':
+        return "What's bothering you?";
+      default:
+        return "Tell me more about how you're feeling.";
+    }
+  };
+
+  const handleSkip = () => {
+    onResponse('');
+  };
+
+  const handleSubmit = () => {
+    onResponse(text);
+  };
+
+  return (
+    <div className="screen conversation-screen">
+      <div className="conversation-box">
+        <p className="otis-message">{getFollowUpQuestion()}</p>
+      </div>
+
+      <input
+        type="text"
+        placeholder="Tell me..."
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleSubmit();
+        }}
+        autoFocus
+        className="wide-input"
+      />
+
+      <div className="button-group">
+        <button onClick={handleSubmit} className="btn-primary">
+          Continue
+        </button>
+        <button onClick={handleSkip} className="btn-secondary">
+          Skip
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const RecommendationScreen: React.FC<{
+  name: string;
+  understanding: string;
+  recommendation: string;
+  movement: Movement;
+  onStart: () => void;
+}> = ({ name, understanding, recommendation, movement, onStart }) => {
+  return (
+    <div className="screen conversation-screen">
+      <div className="conversation-box">
+        <p className="otis-message">
+          {recommendation}
+        </p>
+        <p className="otis-message" style={{ marginTop: '1rem', fontSize: '0.95rem', opacity: 0.8 }}>
+          We'll do this together. About {movement.duration} minutes.
+        </p>
+      </div>
+
+      <button onClick={onStart} className="btn-primary">
+        Let's move
+      </button>
+    </div>
+  );
+};
+
+const MovementSession: React.FC<{
+  movement: Movement;
+  onComplete: () => void;
+}> = ({ movement, onComplete }) => {
+  const [narrationIndex, setNarrationIndex] = useState(0);
+  const [isMoving, setIsMoving] = useState(false);
+
+  const currentNarration = movement.narration[narrationIndex];
+  const isComplete = narrationIndex >= movement.narration.length;
+
+  const handleNext = () => {
+    if (!isComplete) {
+      setNarrationIndex(narrationIndex + 1);
+    } else {
+      onComplete();
+    }
+  };
+
+  return (
+    <div className="screen movement-screen">
+      <div className="movement-header">
+        <p className="step-indicator">
+          {narrationIndex + 1} of {movement.narration.length}
+        </p>
+        <h2>{movement.name}</h2>
+      </div>
+
+      <div className="narration-box">
+        <p className="narration-text">{currentNarration}</p>
+      </div>
+
+      <div className="cues-box">
+        {movement.cues.map((cue, i) => (
+          <p key={i} className="cue">• {cue}</p>
+        ))}
+      </div>
+
+      <button
+        onClick={handleNext}
+        className="btn-primary"
+      >
+        {isComplete ? "Finished" : "Continue"}
+      </button>
+    </div>
+  );
+};
+
+const HowNow: React.FC<{
+  onReflection: (state: string, notes: string) => void;
+}> = ({ onReflection }) => {
+  const [selectedState, setSelectedState] = useState<string | null>(null);
+  const [notes, setNotes] = useState('');
+  const [showNotes, setShowNotes] = useState(false);
+
+  const handleStateClick = (id: string) => {
+    setSelectedState(id);
+    setShowNotes(true);
+  };
+
+  const handleSubmit = () => {
+    if (selectedState) {
+      onReflection(selectedState, notes);
+    }
+  };
+
+  return (
+    <div className="screen conversation-screen">
+      <div className="conversation-box">
+        <p className="otis-message">How do you feel now?</p>
+      </div>
+
+      <div className="emotional-buttons">
+        {EMOTIONAL_STATES.map((state) => (
+          <button
+            key={state.id}
+            onClick={() => handleStateClick(state.id)}
+            className={`emotional-btn ${selectedState === state.id ? 'active' : ''}`}
+            style={selectedState === state.id ? { borderColor: state.color, backgroundColor: `${state.color}15` } : {}}
+          >
+            <span className="emoji">{state.emoji}</span>
+            <span className="label">{state.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {showNotes && selectedState && (
+        <div className="text-input-section">
+          <input
+            type="text"
+            placeholder="Anything you noticed? (optional)"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSubmit();
+            }}
+            autoFocus
+          />
+          <button onClick={handleSubmit} className="btn-primary">
+            Done
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ClosingMessage: React.FC<{
+  name: string;
+  onReset: () => void;
+}> = ({ name, onReset }) => {
+  return (
+    <div className="screen closing-screen">
+      <div className="conversation-box">
+        <p className="otis-message">
+          Thanks for spending a few minutes with me today.
+        </p>
+        <p className="otis-message">
+          I'll check in tomorrow morning.
+        </p>
+        <p className="otis-message" style={{ fontSize: '0.95rem', opacity: 0.7, marginTop: '1.5rem' }}>
+          And if your neck tightens up, or your back gets sore, or you just want to chat—come find me. I'm here.
+        </p>
+      </div>
+
+      <button onClick={onReset} className="btn-secondary" style={{ marginTop: '2rem' }}>
+        See you tomorrow
+      </button>
+    </div>
+  );
+};
+
+// Main App
+export default function App() {
+  const [memory, setMemory] = useState<Memory>(loadMemory());
+  const [flow, setFlow] = useState<string>(memory.profile ? 'greeting' : 'onboarding');
+  const [emotionalState, setEmotionalState] = useState<string>('');
+  const [followUpResponse, setFollowUpResponse] = useState<string>('');
+  const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
+  const [reflectionState, setReflectionState] = useState<string>('');
+  const [reflectionNotes, setReflectionNotes] = useState<string>('');
+
+  const today = getTodayDate();
+  const yesterday = getYesterdayDate();
+  const yesterdayMemory = memory.history.find(h => h.date === yesterday);
+  const alreadyCompletedToday = memory.history.find(h => h.date === today);
+
+  // Recommendation logic
+  const generateRecommendation = (
+    state: string,
+    followUp: string
+  ): { recommendation: string; movement: Movement } => {
+    // Select movement based on emotional state and follow-up context
+    let selectedId = 'morning_flow';
+
+    if (state === 'pain') {
+      selectedId = 'breathing'; // Start gentle
+    } else if (state === 'stiff') {
+      selectedId = followUp.toLowerCase().includes('neck') ? 'neck_gentle' : 'upper_back';
+    } else if (state === 'low') {
+      selectedId = 'morning_flow'; // Wake up gently
+    } else if (state === 'energized') {
+      selectedId = 'morning_flow'; // Full body
+    } else {
+      selectedId = 'hips_opening'; // Neutral
+    }
+
+    const movement = MOVEMENTS[selectedId] || MOVEMENTS['morning_flow'];
+    
+    const recommendations: Record<string, string> = {
+      upper_back: "Based on what you've shared, I think your upper back could use some attention today. Let's open that up together.",
+      hips_opening: "Let's start with your hips—they probably need some love after being sat on all day.",
+      neck_gentle: "Your neck is asking for attention. Let's be gentle with it.",
+      breathing: "Let's start simple. Just breathe together for a minute, then we'll move.",
+      walk_present: "Let's get you moving mindfully. Nothing intense—just awareness.",
+      morning_flow: "Let's do a gentle wake-up. Get your whole body moving together."
+    };
+
+    const recommendation = recommendations[movement.id] || recommendations['morning_flow'];
+
+    return { recommendation, movement };
+  };
+
+  const handleOnboardingComplete = (profile: UserProfile) => {
+    const newMemory = { ...memory, profile };
+    setMemory(newMemory);
+    saveMemory(newMemory);
+    setFlow('greeting');
+  };
+
+  const handleGreetingNext = () => {
+    setFlow('howareyou');
+  };
+
+  const handleStateSelect = (state: string, label: string) => {
+    setEmotionalState(state);
+    setFlow('followup');
+  };
+
+  const handleFollowUpResponse = (response: string) => {
+    setFollowUpResponse(response);
+    
+    const { recommendation, movement } = generateRecommendation(emotionalState, response);
+    setSelectedMovement(movement);
+    
+    setFlow('recommendation');
+  };
+
+  const handleMovementStart = () => {
+    setFlow('movement');
+  };
+
+  const handleMovementComplete = () => {
+    setFlow('hownow');
+  };
+
+  const handleReflectionSubmit = (state: string, notes: string) => {
+    setReflectionState(state);
+    setReflectionNotes(notes);
+
+    // Save to memory
+    const dailyEntry: DailyMemory = {
+      date: today,
+      greeting: generateGreeting(memory.profile?.name || 'Friend', yesterdayMemory),
+      howTheyFelt: emotionalState,
+      userNotes: followUpResponse,
+      followUpAnswer: followUpResponse,
+      movementRecommendation: selectedMovement?.name || 'Movement',
+      beforeMovement: emotionalState,
+      afterMovement: state,
+      completionNote: notes
+    };
+
+    const newHistory = [...memory.history, dailyEntry];
+    const newMemory = { ...memory, history: newHistory };
+    setMemory(newMemory);
+    saveMemory(newMemory);
+
+    setFlow('closing');
+  };
+
+  const handleReset = () => {
+    // Reset for next day
+    setEmotionalState('');
+    setFollowUpResponse('');
+    setSelectedMovement(null);
+    setReflectionState('');
+    setReflectionNotes('');
+    setFlow('greeting');
+  };
+
+  // Prevent re-running if already completed today
+  if (alreadyCompletedToday && flow === 'greeting') {
+    return (
+      <div className="screen conversation-screen">
+        <div className="conversation-box">
+          <p className="otis-message">
+            You already showed up today. Great work.
+          </p>
+          <p className="otis-message" style={{ marginTop: '1rem', fontSize: '0.95rem', opacity: 0.7 }}>
+            I'll see you tomorrow morning.
+          </p>
+        </div>
+        <button onClick={() => setFlow('closing')} className="btn-secondary">
+          See you tomorrow
+        </button>
+      </div>
+    );
   }
 
-  .otis-message {
-    font-size: 1rem;
-  }
+  return (
+    <div className="app">
+      {flow === 'onboarding' && (
+        <Onboarding onComplete={handleOnboardingComplete} />
+      )}
 
-  button {
-    padding: 0.9rem var(--spacing-md);
-    font-size: 1.05rem;
-  }
+      {flow === 'greeting' && memory.profile && (
+        <Greeting
+          name={memory.profile.name}
+          yesterday={yesterdayMemory}
+          onNext={handleGreetingNext}
+        />
+      )}
 
-  .emotional-btn {
-    padding: var(--spacing-sm);
-    gap: var(--spacing-sm);
-  }
+      {flow === 'howareyou' && (
+        <HowAreYou onStateSelect={handleStateSelect} />
+      )}
 
-  .emotional-btn .emoji {
-    font-size: 1.3rem;
-  }
+      {flow === 'followup' && (
+        <FollowUp state={emotionalState} onResponse={handleFollowUpResponse} />
+      )}
 
-  .narration-text {
-    font-size: 1rem;
-  }
-}
+      {flow === 'recommendation' && selectedMovement && (
+        <RecommendationScreen
+          name={memory.profile?.name || 'Friend'}
+          understanding={followUpResponse}
+          recommendation={generateRecommendation(emotionalState, followUpResponse).recommendation}
+          movement={selectedMovement}
+          onStart={handleMovementStart}
+        />
+      )}
 
-/* Accessibility */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+      {flow === 'movement' && selectedMovement && (
+        <MovementSession
+          movement={selectedMovement}
+          onComplete={handleMovementComplete}
+        />
+      )}
 
-input:focus,
-textarea:focus {
-  outline: none;
-}
+      {flow === 'hownow' && (
+        <HowNow onReflection={handleReflectionSubmit} />
+      )}
 
-button:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+      {flow === 'closing' && memory.profile && (
+        <ClosingMessage
+          name={memory.profile.name}
+          onReset={handleReset}
+        />
+      )}
+    </div>
+  );
 }
