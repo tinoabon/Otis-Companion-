@@ -13,8 +13,6 @@ interface ConversationMemory {
   date: string;
   userName: string;
   messages: Message[];
-  lastMovement?: string;
-  movedToday?: boolean;
 }
 
 const MOVEMENTS = {
@@ -22,13 +20,13 @@ const MOVEMENTS = {
     id: 'hips',
     name: 'Hip Opening',
     duration: 90,
-    description: 'Wake up your hips. They have been compressed all day.'
+    description: 'Wake up your hips. Simple and slow.'
   },
   neck: {
     id: 'neck',
     name: 'Neck Release',
     duration: 60,
-    description: 'Release the tension from looking down.'
+    description: 'Release tension from looking down.'
   },
   back: {
     id: 'back',
@@ -47,7 +45,6 @@ const MOVEMENTS = {
 const generateOtisResponse = (userMessage: string): { response: string; shouldOfferMovement?: boolean } => {
   const lower = userMessage.toLowerCase();
 
-  // Tired/low energy
   if (lower.includes('tired') || lower.includes('low') || lower.includes('exhausted')) {
     return {
       response: "I hear that. A little gentle movement might help wake you up.",
@@ -55,7 +52,6 @@ const generateOtisResponse = (userMessage: string): { response: string; shouldOf
     };
   }
 
-  // Mentions pain/stiffness
   if (lower.includes('stiff') || lower.includes('sore') || lower.includes('tight') || lower.includes('pain')) {
     return {
       response: "Your body is asking for some attention. Let us move gently.",
@@ -63,26 +59,23 @@ const generateOtisResponse = (userMessage: string): { response: string; shouldOf
     };
   }
 
-  // Energized/good
   if (lower.includes('good') || lower.includes('great') || lower.includes('energized')) {
     return {
-      response: "That's wonderful. You're in a good place.",
+      response: "That is wonderful. You are in a good place.",
       shouldOfferMovement: false
     };
   }
 
-  // Asking for movement
   if (lower.includes('move') || lower.includes('stretch') || lower.includes('exercise') || lower.includes('help')) {
     return {
-      response: "Let's do something together.",
+      response: "Let us do something together.",
       shouldOfferMovement: true
     };
   }
 
-  // Default
   const defaults = [
     "Tell me more.",
-    "I'm listening.",
+    "I am listening.",
     "What else?",
     "How does that feel?"
   ];
@@ -109,7 +102,6 @@ export default function App() {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showChips, setShowChips] = useState(false);
-  const [pendingMovement, setPendingMovement] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -120,7 +112,6 @@ export default function App() {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  // Initialize
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     const stored = localStorage.getItem(`otis_${today}`);
@@ -130,13 +121,11 @@ export default function App() {
       setUserName(memory.userName);
       setMessages(memory.messages);
 
-      // Greet returning user
       setTimeout(() => {
         const greeting = getGreeting(memory.userName);
         addOtisMessage(`${greeting} How are you feeling after yesterday?`);
       }, 500);
     } else {
-      // First time
       setTimeout(() => {
         addOtisMessage("Hi there. What should I call you?");
       }, 300);
@@ -166,7 +155,6 @@ export default function App() {
   const handleSendMessage = (text: string) => {
     if (!text.trim()) return;
 
-    // Getting name
     if (!userName) {
       const name = text.trim();
       setUserName(name);
@@ -180,29 +168,21 @@ export default function App() {
       return;
     }
 
-    // Regular conversation
     addMessage('user', text);
     setInputValue('');
 
-    // Generate response
     setTimeout(() => {
       const { response, shouldOfferMovement } = generateOtisResponse(text);
       addOtisMessage(response);
 
       if (shouldOfferMovement) {
         setTimeout(() => {
-          setPendingMovement('hips');
-          addOtisMessage(
-            `I think your hips need some attention. Let's spend 90 seconds on this.`,
-            'text',
-            500
-          );
+          addOtisMessage("I think your hips need some attention. Let us spend 90 seconds on this.", 'text', 500);
           setShowChips(true);
         }, 1500);
       }
     }, 800);
 
-    // Save memory
     const today = new Date().toISOString().split('T')[0];
     const memory: ConversationMemory = {
       date: today,
@@ -217,23 +197,17 @@ export default function App() {
     setShowChips(false);
     setInputValue('');
 
-    if (chip === 'Let\'s go') {
+    if (chip === "Let us go") {
       setTimeout(() => {
-        addMessage('otis', `
-I'll guide you through this gently.
-
-Stand or sit however feels comfortable. We will make slow circles with your hips. Nothing forced—just moving with awareness.
-
-Ready when you are.
-        `, 'movement-card');
+        addMessage('otis', "Stand or sit however feels comfortable. We will make slow circles with your hips. Nothing forced, just moving with awareness. Ready when you are.", 'movement-card');
       }, 500);
-    } else if (chip === 'Not today') {
+    } else if (chip === "Not today") {
       setTimeout(() => {
-        addOtisMessage('That's okay. Anytime you want to move, I'm here.');
+        addOtisMessage("That is okay. Anytime you want to move, I am here.");
       }, 500);
-    } else if (chip === 'Tell me more') {
+    } else if (chip === "Tell me more") {
       setTimeout(() => {
-        addOtisMessage('Your hips probably feel tight from sitting. We can spend just 90 seconds waking them up.');
+        addOtisMessage("Your hips probably feel tight from sitting. We can spend just 90 seconds waking them up.");
       }, 500);
     }
   };
@@ -241,16 +215,14 @@ Ready when you are.
   return (
     <div className="app">
       <div className="chat">
-        {/* Header */}
         <div className="header">
-          <div className="header-name">{userName || 'Otis'}</div>
+          <div className="header-name">{userName || "Otis"}</div>
         </div>
 
-        {/* Messages */}
         <div className="messages-container">
           {messages.map((msg) => (
             <div key={msg.id} className={`message-wrapper message-${msg.role}`}>
-              <div className={`message bubble`}>
+              <div className="message bubble">
                 {msg.content}
               </div>
             </div>
@@ -268,13 +240,13 @@ Ready when you are.
 
           {showChips && (
             <div className="chips-container">
-              <button className="chip" onClick={() => handleChipClick("Let's go")}>
-                Let's go
+              <button className="chip" onClick={() => handleChipClick("Let us go")}>
+                Let us go
               </button>
-              <button className="chip" onClick={() => handleChipClick('Tell me more')}>
+              <button className="chip" onClick={() => handleChipClick("Tell me more")}>
                 Tell me more
               </button>
-              <button className="chip" onClick={() => handleChipClick('Not today')}>
+              <button className="chip" onClick={() => handleChipClick("Not today")}>
                 Not today
               </button>
             </div>
@@ -283,7 +255,6 @@ Ready when you are.
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
         <div className="input-container">
           <input
             type="text"
@@ -294,7 +265,7 @@ Ready when you are.
                 handleSendMessage(inputValue);
               }
             }}
-            placeholder={userName ? "Tell me..." : "What's your name?"}
+            placeholder={userName ? "Tell me..." : "What is your name?"}
             autoFocus
             className="input"
           />
