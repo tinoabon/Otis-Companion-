@@ -1,14 +1,18 @@
-/* Otis - Conversational Interface */
+/* Otis – Warm, Premium, Editorial Conversation Design */
 
 :root {
-  --primary: #1a1a1a;
-  --secondary: #6b7280;
-  --light: #f9fafb;
-  --user-bubble: #007AFF;
-  --otis-bubble: #e5e7eb;
-  --border: #e5e5e5;
+  --bg-warm: #faf8f3;
+  --bg-card: #ffffff;
+  --text-primary: #1a1a1a;
+  --text-secondary: #5a5a5a;
+  --accent-blue: #2563eb;
+  --accent-green: #059669;
+  --border-color: #1a1a1a;
+  --user-bubble: #2563eb;
+  --otis-bubble: #f0ede8;
   
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --font-serif: 'Georgia', serif;
 }
 
 * {
@@ -21,8 +25,9 @@ html, body {
   width: 100%;
   height: 100%;
   font-family: var(--font);
-  background: var(--light);
-  color: var(--primary);
+  background: var(--bg-warm);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
 }
 
 #root {
@@ -34,7 +39,6 @@ html, body {
   width: 100%;
   height: 100%;
   display: flex;
-  background: white;
 }
 
 .chat {
@@ -42,52 +46,59 @@ html, body {
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: var(--bg-warm);
 }
 
 /* Header */
 .header {
-  padding: 1rem;
-  border-bottom: 1px solid var(--border);
-  text-align: center;
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 2px solid var(--border-color);
+  background: var(--bg-warm);
 }
 
-.header h1 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--primary);
+.header-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
 }
 
-/* Messages Area */
-.messages {
+/* Messages Container */
+.messages-container {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 1rem;
+  padding: 1.5rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1.25rem;
   scroll-behavior: smooth;
 }
 
-.messages::-webkit-scrollbar {
-  width: 4px;
+.messages-container::-webkit-scrollbar {
+  width: 6px;
 }
 
-.messages::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 2px;
+.messages-container::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-/* Message */
-.message {
+.messages-container::-webkit-scrollbar-thumb {
+  background: var(--text-secondary);
+  border-radius: 3px;
+  opacity: 0.3;
+}
+
+/* Message Wrapper */
+.message-wrapper {
   display: flex;
-  animation: slideUp 0.3s ease-out;
+  animation: slideIn 0.4s ease-out;
 }
 
-@keyframes slideUp {
+@keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -97,120 +108,164 @@ html, body {
 
 .message-user {
   justify-content: flex-end;
+  padding-right: 0.5rem;
 }
 
 .message-otis {
   justify-content: flex-start;
+  padding-left: 0.5rem;
 }
 
-/* Bubble */
-.bubble {
-  max-width: 85%;
-  padding: 0.75rem 1rem;
-  border-radius: 18px;
+/* Message Bubble */
+.message.bubble {
+  max-width: 80%;
+  padding: 1rem 1.25rem;
+  border-radius: 20px;
+  font-size: 1rem;
+  line-height: 1.6;
   word-wrap: break-word;
-  font-size: 0.95rem;
-  line-height: 1.5;
   box-shadow: none;
+  border: 2px solid transparent;
 }
 
 .message-user .bubble {
   background: var(--user-bubble);
   color: white;
-  border-bottom-right-radius: 4px;
+  border-radius: 20px;
+  border-bottom-right-radius: 6px;
+  font-weight: 500;
 }
 
 .message-otis .bubble {
   background: var(--otis-bubble);
-  color: var(--primary);
-  border-bottom-left-radius: 4px;
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 20px;
+  border-bottom-left-radius: 6px;
 }
 
 /* Typing Indicator */
-.bubble.typing {
+.typing-bubble {
   display: flex;
-  gap: 4px;
-  align-items: center;
-  padding: 0.75rem 1rem;
+  gap: 6px;
+  align-items: center !important;
+  padding: 1rem 1.25rem;
 }
 
-.typing span {
+.typing-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--secondary);
-  opacity: 0.4;
-  animation: type 1.4s infinite;
+  background: var(--text-secondary);
+  opacity: 0.5;
+  animation: bounce 1.4s infinite;
 }
 
-.typing span:nth-child(2) {
+.typing-dot:nth-child(2) {
   animation-delay: 0.2s;
 }
 
-.typing span:nth-child(3) {
+.typing-dot:nth-child(3) {
   animation-delay: 0.4s;
 }
 
-@keyframes type {
+@keyframes bounce {
   0%, 60%, 100% {
-    opacity: 0.4;
+    opacity: 0.5;
     transform: translateY(0);
   }
   30% {
     opacity: 1;
-    transform: translateY(-6px);
+    transform: translateY(-8px);
   }
 }
 
-/* Input Area */
-.input-area {
+/* Chips Container */
+.chips-container {
   display: flex;
-  gap: 0.5rem;
-  padding: 1rem;
-  border-top: 1px solid var(--border);
-  background: white;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  padding-left: 0.5rem;
+  animation: slideIn 0.4s ease-out;
+}
+
+.chip {
+  padding: 0.75rem 1.25rem;
+  border: 2px solid var(--border-color);
+  border-radius: 20px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: var(--font);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  background: var(--text-primary);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.chip:active {
+  transform: translateY(0);
+}
+
+/* Input Container */
+.input-container {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1.25rem 1rem;
+  border-top: 2px solid var(--border-color);
+  background: var(--bg-warm);
 }
 
 .input {
   flex: 1;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border);
+  padding: 0.875rem 1.25rem;
+  border: 2px solid var(--border-color);
   border-radius: 20px;
-  font-size: 0.95rem;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 1rem;
   font-family: var(--font);
-  color: var(--primary);
-  background: white;
-  transition: all 0.2s ease;
   outline: none;
+  transition: all 0.2s ease;
 }
 
 .input:focus {
-  border-color: var(--primary);
+  border-color: var(--accent-blue);
 }
 
 .input::placeholder {
-  color: var(--secondary);
-  opacity: 0.5;
+  color: var(--text-secondary);
+  opacity: 0.6;
 }
 
 .send-btn {
-  width: 40px;
-  height: 40px;
-  border: none;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--border-color);
   border-radius: 50%;
-  background: var(--user-bubble);
+  background: var(--text-primary);
   color: white;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
+  flex-shrink: 0;
 }
 
 .send-btn:hover:not(:disabled) {
-  transform: scale(1.05);
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  transform: scale(1.08);
 }
 
 .send-btn:active:not(:disabled) {
@@ -218,22 +273,58 @@ html, body {
 }
 
 .send-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
-/* Mobile */
+/* Mobile Responsive */
 @media (max-width: 480px) {
-  .bubble {
-    max-width: 90%;
+  :root {
+    font-size: 15px;
   }
 
-  .messages {
-    padding: 0.75rem;
+  .header {
+    padding: 1.25rem 1.25rem 0.875rem;
   }
 
-  .input-area {
-    padding: 0.75rem;
+  .header-name {
+    font-size: 1.2rem;
+  }
+
+  .messages-container {
+    padding: 1rem 0.75rem;
+    gap: 1rem;
+  }
+
+  .message.bubble {
+    max-width: 85%;
+    padding: 0.875rem 1rem;
+    font-size: 0.95rem;
+  }
+
+  .chips-container {
+    gap: 0.5rem;
+  }
+
+  .chip {
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .input-container {
+    padding: 1rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .input {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+
+  .send-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
   }
 }
 
@@ -246,7 +337,8 @@ html, body {
   }
 }
 
-button:focus-visible {
-  outline: 2px solid var(--primary);
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--accent-blue);
   outline-offset: 2px;
 }
