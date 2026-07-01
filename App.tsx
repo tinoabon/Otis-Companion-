@@ -38,7 +38,7 @@ const MOVEMENTS: Record<string, Movement> = {
     narration: [
       "Let's start with your upper back.",
       "Stand or sit tall. Feel your shoulders for a moment.",
-      "Now gently roll them back. Once, twice, three times.",
+      "Now gently roll them back. Once, twice, now do 10 more rolls forward then 10 backwards.",
       "Let them drop. Feel the difference?",
       "Good. Now clasp your hands behind you, if that works.",
       "Gently press down and open your chest.",
