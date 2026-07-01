@@ -22,7 +22,7 @@ const MOVEMENTS = {
     id: 'hips',
     name: 'Hip Opening',
     duration: 90,
-    description: 'Wake up your hips. They've been compressed all day.'
+    description: 'Wake up your hips. They have been compressed all day.'
   },
   neck: {
     id: 'neck',
@@ -58,7 +58,7 @@ const generateOtisResponse = (userMessage: string): { response: string; shouldOf
   // Mentions pain/stiffness
   if (lower.includes('stiff') || lower.includes('sore') || lower.includes('tight') || lower.includes('pain')) {
     return {
-      response: "Your body's asking for some attention. Let's move gently.",
+      response: "Your body is asking for some attention. Let us move gently.",
       shouldOfferMovement: true
     };
   }
@@ -222,7 +222,7 @@ export default function App() {
         addMessage('otis', `
 I'll guide you through this gently.
 
-Stand or sit however feels comfortable. We'll make slow circles with your hips. Nothing forced—just moving with awareness.
+Stand or sit however feels comfortable. We will make slow circles with your hips. Nothing forced—just moving with awareness.
 
 Ready when you are.
         `, 'movement-card');
