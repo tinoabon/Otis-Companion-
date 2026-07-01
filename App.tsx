@@ -1,250 +1,115 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 
-// Types
-interface UserProfile {
-  name: string;
-}
-
 interface Message {
   id: string;
   role: 'user' | 'otis';
-  type: 'text' | 'emotional-state' | 'exercise' | 'breathing' | 'reflection' | 'closing';
   content: string;
-  component?: React.ReactNode;
+  type?: 'text' | 'movement-card' | 'chip-response';
   timestamp: Date;
 }
 
-interface Movement {
-  id: string;
-  name: string;
-  duration: number;
-  narration: string[];
-  cues: string[];
-}
-
-interface DailyMemory {
+interface ConversationMemory {
   date: string;
+  userName: string;
   messages: Message[];
-  profile: UserProfile;
+  lastMovement?: string;
+  movedToday?: boolean;
 }
 
-// Movement Library
-const MOVEMENTS: Record<string, Movement> = {
-  upper_back: {
-    id: 'upper_back',
-    name: 'Upper Back Release',
-    duration: 5,
-    narration: [
-      "Let's start with your upper back.",
-      "Stand or sit tall. Feel your shoulders for a moment.",
-      "Now gently roll them back. Once, twice, now do 10 more rolls forward then 10 backwards.",
-      "Let them drop. Feel the difference?",
-      "Good. Now clasp your hands behind you, if that works.",
-      "Gently press down and open your chest.",
-      "Breathe here. You're waking up the muscles that got tight.",
-      "Beautiful. That's the foundation."
-    ],
-    cues: ['Stand or sit comfortably', 'Gentle shoulder rolls', 'Feel your upper back']
-  },
-  hips_opening: {
-    id: 'hips_opening',
+const MOVEMENTS = {
+  hips: {
+    id: 'hips',
     name: 'Hip Opening',
-    duration: 5,
-    narration: [
-      "Now let's wake up your hips.",
-      "Sitting or standing—whatever you prefer.",
-      "Gently make circles with your hips.",
-      "Slow and easy. Let your whole body relax into it.",
-      "You're undoing hours of sitting.",
-      "Feel how your lower back responds?",
-      "Keep going. Nice and slow.",
-      "You're doing this right."
-    ],
-    cues: ['Slow hip circles', 'Feel your lower back release', 'Move from your center']
+    duration: 90,
+    description: 'Wake up your hips. They've been compressed all day.'
   },
-  neck_gentle: {
-    id: 'neck_gentle',
-    name: 'Gentle Neck Release',
-    duration: 4,
-    narration: [
-      "Let's be gentle with your neck.",
-      "Sit tall. Eyes forward.",
-      "Slowly turn your head right. Hold for a breath.",
-      "Come back to center.",
-      "Now left. Same slowness.",
-      "You're just opening up the tension. Not stretching.",
-      "One more each way.",
-      "Notice how that feels."
-    ],
-    cues: ['Slow head turns', 'No forcing', 'Breathe deeply']
+  neck: {
+    id: 'neck',
+    name: 'Neck Release',
+    duration: 60,
+    description: 'Release the tension from looking down.'
+  },
+  back: {
+    id: 'back',
+    name: 'Upper Back Release',
+    duration: 120,
+    description: 'Open your shoulders and chest.'
   },
   breathing: {
     id: 'breathing',
     name: 'Grounding Breath',
-    duration: 3,
-    narration: [
-      "Let's anchor this with your breath.",
-      "Sit comfortably. Close your eyes if you want.",
-      "Inhale for four counts.",
-      "Hold for four.",
-      "Exhale for four.",
-      "Hold for four.",
-      "Again. Slow and steady.",
-      "You're bringing this into your body."
-    ],
-    cues: ['4-4-4-4 pattern', 'Slow breathing', 'Feel your whole body calm']
-  },
-  morning_flow: {
-    id: 'morning_flow',
-    name: 'Morning Wake-Up',
-    duration: 7,
-    narration: [
-      "Let's wake up your whole body gently.",
-      "Start with some gentle stretching. Reach toward the ceiling.",
-      "Now touch your toes—not to get flexible, just to notice.",
-      "Gentle neck rolls. Not full circles. Just half circles.",
-      "Roll your shoulders back a few times.",
-      "Now let's do some hip circles. Moving your center around.",
-      "Feel how everything is connected?",
-      "That's the foundation of a good day."
-    ],
-    cues: ['Gentle full-body movement', 'Wake up without forcing', 'Notice how your body responds']
+    duration: 180,
+    description: 'Anchor yourself with your breath.'
   }
 };
 
-// Emotional States
-const EMOTIONAL_STATES = [
-  { id: 'energized', emoji: '😊', label: 'Ready to move' },
-  { id: 'normal', emoji: '😌', label: 'Pretty good' },
-  { id: 'low', emoji: '😴', label: 'Low energy' },
-  { id: 'stiff', emoji: '😬', label: 'Stiff' },
-  { id: 'pain', emoji: '🤕', label: "Something's bothering me" }
-];
+const generateOtisResponse = (userMessage: string): { response: string; shouldOfferMovement?: boolean } => {
+  const lower = userMessage.toLowerCase();
 
-// Storage
-const getTodayDate = (): string => {
-  return new Date().toISOString().split('T')[0];
+  // Tired/low energy
+  if (lower.includes('tired') || lower.includes('low') || lower.includes('exhausted')) {
+    return {
+      response: "I hear that. A little gentle movement might help wake you up.",
+      shouldOfferMovement: true
+    };
+  }
+
+  // Mentions pain/stiffness
+  if (lower.includes('stiff') || lower.includes('sore') || lower.includes('tight') || lower.includes('pain')) {
+    return {
+      response: "Your body's asking for some attention. Let's move gently.",
+      shouldOfferMovement: true
+    };
+  }
+
+  // Energized/good
+  if (lower.includes('good') || lower.includes('great') || lower.includes('energized')) {
+    return {
+      response: "That's wonderful. You're in a good place.",
+      shouldOfferMovement: false
+    };
+  }
+
+  // Asking for movement
+  if (lower.includes('move') || lower.includes('stretch') || lower.includes('exercise') || lower.includes('help')) {
+    return {
+      response: "Let's do something together.",
+      shouldOfferMovement: true
+    };
+  }
+
+  // Default
+  const defaults = [
+    "Tell me more.",
+    "I'm listening.",
+    "What else?",
+    "How does that feel?"
+  ];
+
+  return {
+    response: defaults[Math.floor(Math.random() * defaults.length)],
+    shouldOfferMovement: false
+  };
 };
 
-const loadMemory = (): DailyMemory | null => {
-  const today = getTodayDate();
-  const stored = localStorage.getItem(`otis_memory_${today}`);
-  return stored ? JSON.parse(stored) : null;
+const getGreeting = (name: string): string => {
+  const greetings = [
+    `Morning, ${name}.`,
+    `Hey ${name}.`,
+    `Good to see you, ${name}.`,
+    `${name}.`
+  ];
+  return greetings[Math.floor(Math.random() * greetings.length)];
 };
 
-const saveMemory = (memory: DailyMemory) => {
-  const today = getTodayDate();
-  localStorage.setItem(`otis_memory_${today}`, JSON.stringify(memory));
-};
-
-// Message Components
-const TextMessage: React.FC<{ role: 'user' | 'otis'; content: string }> = ({ role, content }) => (
-  <div className={`message message-${role}`}>
-    <div className="message-bubble">{content}</div>
-  </div>
-);
-
-const TypingIndicator: React.FC = () => (
-  <div className="message message-otis">
-    <div className="message-bubble typing-indicator">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
-  </div>
-);
-
-const EmotionalStateOptions: React.FC<{ onSelect: (state: string) => void }> = ({ onSelect }) => (
-  <div className="message message-otis">
-    <div className="quick-replies">
-      {EMOTIONAL_STATES.map((state) => (
-        <button
-          key={state.id}
-          onClick={() => onSelect(state.id)}
-          className="quick-reply-btn"
-        >
-          <span className="emoji">{state.emoji}</span>
-          <span className="label">{state.label}</span>
-        </button>
-      ))}
-    </div>
-  </div>
-);
-
-const ExerciseCard: React.FC<{ 
-  movement: Movement; 
-  onStart: () => void 
-}> = ({ movement, onStart }) => (
-  <div className="message message-otis">
-    <div className="exercise-card">
-      <h3>{movement.name}</h3>
-      <p className="duration">About {movement.duration} minutes</p>
-      <button onClick={onStart} className="exercise-start-btn">
-        Let's move
-      </button>
-    </div>
-  </div>
-);
-
-const BreathingExercise: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
-  const [step, setStep] = useState(0);
-  const steps = ['Inhale', 'Hold', 'Exhale', 'Hold'];
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setStep((prev) => {
-        if (prev >= 7) {
-          onComplete();
-          return 0;
-        }
-        return prev + 1;
-      });
-    }, 4000);
-
-    return () => clearInterval(timer);
-  }, [onComplete]);
-
-  return (
-    <div className="message message-otis">
-      <div className="breathing-card">
-        <div className="breathing-circle" style={{
-          animation: step % 4 === 0 || step % 4 === 2 ? 'breathe-in 4s' : 'breathe-out 4s'
-        }}>
-          {steps[step % 4]}
-        </div>
-        <p className="breath-count">Cycle {Math.floor(step / 4) + 1} of 2</p>
-      </div>
-    </div>
-  );
-};
-
-const ReflectionOptions: React.FC<{ onSelect: (state: string) => void }> = ({ onSelect }) => (
-  <div className="message message-otis">
-    <div className="quick-replies">
-      {EMOTIONAL_STATES.map((state) => (
-        <button
-          key={state.id}
-          onClick={() => onSelect(state.id)}
-          className="quick-reply-btn"
-        >
-          <span className="emoji">{state.emoji}</span>
-        </button>
-      ))}
-    </div>
-  </div>
-);
-
-// Main App
 export default function App() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const [stage, setStage] = useState<'onboarding' | 'greeting' | 'conversation'>('onboarding');
-  const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
-  const [isExercising, setIsExercising] = useState(false);
-  const [exerciseStep, setExerciseStep] = useState(0);
+  const [isTyping, setIsTyping] = useState(false);
+  const [showChips, setShowChips] = useState(false);
+  const [pendingMovement, setPendingMovement] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -257,250 +122,190 @@ export default function App() {
 
   // Initialize
   useEffect(() => {
-    const today = getTodayDate();
-    const stored = loadMemory();
+    const today = new Date().toISOString().split('T')[0];
+    const stored = localStorage.getItem(`otis_${today}`);
 
-    if (stored && stored.profile) {
-      setProfile(stored.profile);
-      setMessages(stored.messages);
-      setStage('greeting');
-      
+    if (stored) {
+      const memory = JSON.parse(stored);
+      setUserName(memory.userName);
+      setMessages(memory.messages);
+
       // Greet returning user
       setTimeout(() => {
-        addOtisMessage(`Morning, ${stored.profile.name}. Good to see you again. How are you doing today?`, 'text');
+        const greeting = getGreeting(memory.userName);
+        addOtisMessage(`${greeting} How are you feeling after yesterday?`);
       }, 500);
+    } else {
+      // First time
+      setTimeout(() => {
+        addOtisMessage("Hi there. What should I call you?");
+      }, 300);
     }
   }, []);
 
-  const addUserMessage = (content: string) => {
+  const addMessage = (role: 'user' | 'otis', content: string, type: Message['type'] = 'text'): Message => {
     const message: Message = {
       id: Math.random().toString(),
-      role: 'user',
-      type: 'text',
+      role,
       content,
+      type,
       timestamp: new Date()
     };
     setMessages((prev) => [...prev, message]);
-    setInputValue('');
+    return message;
   };
 
   const addOtisMessage = (content: string, type: Message['type'] = 'text', delay = 800) => {
     setIsTyping(true);
     setTimeout(() => {
-      const message: Message = {
-        id: Math.random().toString(),
-        role: 'otis',
-        type,
-        content,
-        timestamp: new Date()
-      };
-      setMessages((prev) => [...prev, message]);
+      addMessage('otis', content, type);
       setIsTyping(false);
     }, delay);
-  };
-
-  const handleNameSubmit = (name: string) => {
-    if (!name.trim()) return;
-
-    const newProfile: UserProfile = { name: name.trim() };
-    setProfile(newProfile);
-    addUserMessage(name);
-
-    setTimeout(() => {
-      addOtisMessage(`Nice to meet you, ${name}! I'm Otis, and I'm excited to get to know you.`);
-      setStage('greeting');
-
-      setTimeout(() => {
-        addOtisMessage('How are you doing today?', 'emotional-state');
-      }, 1500);
-    }, 500);
-  };
-
-  const handleEmotionalState = (stateId: string) => {
-    const state = EMOTIONAL_STATES.find((s) => s.id === stateId);
-    if (!state) return;
-
-    addUserMessage(`${state.emoji} ${state.label}`);
-
-    setTimeout(() => {
-      // Generate contextual follow-up
-      const followUps: Record<string, string> = {
-        energized: "That's great energy! What's making you feel so good today?",
-        normal: "Good to hear. Anything on your mind right now?",
-        low: "I hear you. What's making you feel low today?",
-        stiff: "Let's help with that. Where are you feeling the stiffness most?",
-        pain: "I'm listening. What's bothering you?"
-      };
-
-      addOtisMessage(followUps[stateId] || "Tell me more about how you're feeling.");
-    }, 500);
-
-    setStage('conversation');
-  };
-
-  const handleReflection = (stateId: string) => {
-    const state = EMOTIONAL_STATES.find((s) => s.id === stateId);
-    if (!state) return;
-
-    addUserMessage(`${state.emoji}`);
-
-    setTimeout(() => {
-      addOtisMessage(
-        `Thanks for spending a few minutes with me today. I'll check in tomorrow morning. And if your body needs something later, just come find me. I'm here.`,
-        'text'
-      );
-    }, 500);
-  };
-
-  const handleExerciseStart = () => {
-    if (!selectedMovement) return;
-    setIsExercising(true);
-    setExerciseStep(0);
-
-    const movement = selectedMovement;
-    
-    const playNarration = (index: number) => {
-      if (index >= movement.narration.length) {
-        setIsExercising(false);
-        setTimeout(() => {
-          addOtisMessage('How do you feel now?', 'reflection');
-        }, 500);
-        return;
-      }
-
-      addOtisMessage(movement.narration[index], 'text', 1000);
-      setTimeout(() => {
-        playNarration(index + 1);
-      }, 2500 + movement.narration[index].length * 20);
-    };
-
-    playNarration(0);
   };
 
   const handleSendMessage = (text: string) => {
     if (!text.trim()) return;
 
-    addUserMessage(text);
+    // Getting name
+    if (!userName) {
+      const name = text.trim();
+      setUserName(name);
+      addMessage('user', name);
 
-    // Simple response logic
+      setTimeout(() => {
+        addOtisMessage(`Nice to meet you, ${name}. How are you feeling right now?`);
+      }, 500);
+
+      setInputValue('');
+      return;
+    }
+
+    // Regular conversation
+    addMessage('user', text);
+    setInputValue('');
+
+    // Generate response
     setTimeout(() => {
-      if (text.toLowerCase().includes('move') || text.toLowerCase().includes('exercise')) {
-        const movements = Object.values(MOVEMENTS);
-        const selected = movements[Math.floor(Math.random() * movements.length)];
-        setSelectedMovement(selected);
-        addOtisMessage(
-          `Based on what you've shared, I think a ${selected.name.toLowerCase()} would be perfect right now. Ready?`,
-          'exercise',
-          1000
-        );
-      } else {
-        addOtisMessage('I hear you. Would some gentle movement help?', 'text', 1000);
+      const { response, shouldOfferMovement } = generateOtisResponse(text);
+      addOtisMessage(response);
+
+      if (shouldOfferMovement) {
+        setTimeout(() => {
+          setPendingMovement('hips');
+          addOtisMessage(
+            `I think your hips need some attention. Let's spend 90 seconds on this.`,
+            'text',
+            500
+          );
+          setShowChips(true);
+        }, 1500);
       }
-    }, 500);
+    }, 800);
+
+    // Save memory
+    const today = new Date().toISOString().split('T')[0];
+    const memory: ConversationMemory = {
+      date: today,
+      userName: userName || '',
+      messages
+    };
+    localStorage.setItem(`otis_${today}`, JSON.stringify(memory));
   };
 
-  // Onboarding
-  if (stage === 'onboarding') {
-    return (
-      <div className="app">
-        <div className="chat-container">
-          <div className="messages">
-            <div className="message message-otis">
-              <div className="message-bubble">
-                Hi! I'm Otis. I'm excited to get to know you.
-              </div>
-            </div>
-            <div className="message message-otis">
-              <div className="message-bubble">
-                Before we get started, what's your name?
-              </div>
-            </div>
-          </div>
+  const handleChipClick = (chip: string) => {
+    addMessage('user', chip, 'chip-response');
+    setShowChips(false);
+    setInputValue('');
 
-          <div className="input-section">
-            <input
-              type="text"
-              placeholder="Your name"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleNameSubmit(e.currentTarget.value);
-                }
-              }}
-              className="chat-input"
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
+    if (chip === 'Let\'s go') {
+      setTimeout(() => {
+        addMessage('otis', `
+I'll guide you through this gently.
 
-  // Main Chat
+Stand or sit however feels comfortable. We'll make slow circles with your hips. Nothing forced—just moving with awareness.
+
+Ready when you are.
+        `, 'movement-card');
+      }, 500);
+    } else if (chip === 'Not today') {
+      setTimeout(() => {
+        addOtisMessage('That's okay. Anytime you want to move, I'm here.');
+      }, 500);
+    } else if (chip === 'Tell me more') {
+      setTimeout(() => {
+        addOtisMessage('Your hips probably feel tight from sitting. We can spend just 90 seconds waking them up.');
+      }, 500);
+    }
+  };
+
   return (
     <div className="app">
-      <div className="chat-container">
-        <div className="messages">
+      <div className="chat">
+        {/* Header */}
+        <div className="header">
+          <div className="header-name">{userName || 'Otis'}</div>
+        </div>
+
+        {/* Messages */}
+        <div className="messages-container">
           {messages.map((msg) => (
-            <div key={msg.id}>
-              {msg.type === 'text' && (
-                <TextMessage role={msg.role} content={msg.content} />
-              )}
-              {msg.type === 'emotional-state' && msg.role === 'otis' && (
-                <EmotionalStateOptions onSelect={handleEmotionalState} />
-              )}
-              {msg.type === 'exercise' && msg.role === 'otis' && selectedMovement && (
-                <ExerciseCard movement={selectedMovement} onStart={handleExerciseStart} />
-              )}
-              {msg.type === 'reflection' && msg.role === 'otis' && (
-                <ReflectionOptions onSelect={handleReflection} />
-              )}
+            <div key={msg.id} className={`message-wrapper message-${msg.role}`}>
+              <div className={`message bubble`}>
+                {msg.content}
+              </div>
             </div>
           ))}
-          {isTyping && <TypingIndicator />}
+
+          {isTyping && (
+            <div className="message-wrapper message-otis">
+              <div className="message bubble typing-bubble">
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+              </div>
+            </div>
+          )}
+
+          {showChips && (
+            <div className="chips-container">
+              <button className="chip" onClick={() => handleChipClick("Let's go")}>
+                Let's go
+              </button>
+              <button className="chip" onClick={() => handleChipClick('Tell me more')}>
+                Tell me more
+              </button>
+              <button className="chip" onClick={() => handleChipClick('Not today')}>
+                Not today
+              </button>
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
 
-        {stage === 'greeting' && profile && !isExercising && (
-          <div className="input-section">
-            <input
-              type="text"
-              placeholder="Tell me..."
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSendMessage(inputValue);
-                }
-              }}
-              className="chat-input"
-              autoFocus
-            />
-            <button
-              onClick={() => handleSendMessage(inputValue)}
-              className="send-btn"
-              disabled={!inputValue.trim()}
-            >
-              Send
-            </button>
-          </div>
-        )}
-
-        {isExercising && selectedMovement && (
-          <div className="exercise-info">
-            <p>Follow along with Otis. Press "Done" when you're finished.</p>
-            <button
-              onClick={() => {
-                setIsExercising(false);
-                setTimeout(() => {
-                  addOtisMessage('How do you feel now?', 'reflection');
-                }, 500);
-              }}
-              className="done-btn"
-            >
-              Done
-            </button>
-          </div>
-        )}
+        {/* Input */}
+        <div className="input-container">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSendMessage(inputValue);
+              }
+            }}
+            placeholder={userName ? "Tell me..." : "What's your name?"}
+            autoFocus
+            className="input"
+          />
+          <button
+            onClick={() => handleSendMessage(inputValue)}
+            disabled={!inputValue.trim()}
+            className="send-btn"
+          >
+            →
+          </button>
+        </div>
       </div>
     </div>
   );
