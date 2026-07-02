@@ -1,0 +1,25 @@
+// src/movement/MovementLibrary.ts
+
+import { Movement } from "../types/movement";
+
+export const movementLibrary: Record<string, Movement> = {
+    hip_opener: { id: "hip_opener", name: "Hip Opening", duration: 90, description: "Wake up your hips. Simple and slow.", bodyRegion: "hips", intensity: "gentle", narrative: ["Stand or sit however feels comfortable.", "We will make slow circles with your hips.", "Move from your hips, not your torso.", "Go slow. There is no rush.", "Feel where they want to open.", "Nice."] },
+    neck_release: { id: "neck_release", name: "Neck Release", duration: 60, description: "Release tension from looking down.", bodyRegion: "neck", intensity: "gentle", narrative: ["Sit comfortably with your spine tall.", "Slowly drop your right ear toward your right shoulder.", "Feel the stretch on the left side of your neck.", "Breathe here for a few breaths.", "Now the other side.", "Simple. Effective."] },
+    upper_back_release: { id: "upper_back_release", name: "Upper Back Release", duration: 120, description: "Open your shoulders and chest.", bodyRegion: "back", intensity: "gentle", narrative: ["Stand with your feet about shoulder width apart.", "Interlace your hands behind your back.", "Straighten your arms and lift your chest.", "Feel your shoulder blades draw together.", "This opens everything your desk closed.", "Hold here. Breathe."] },
+    grounding_breath: { id: "grounding_breath", name: "Grounding Breath", duration: 180, description: "Anchor yourself with your breath.", bodyRegion: "full-body", intensity: "gentle", narrative: ["Find a comfortable seat.", "Breathe in slowly for a count of four.", "Hold for a count of four.", "Breathe out for a count of six.", "The longer exhale grounds you.", "Do this for a few minutes.", "Just breathe."] },
+    lower_back_relief: { id: "lower_back_relief", name: "Lower Back Relief", duration: 75, description: "Ease tension in your lower back.", bodyRegion: "back", intensity: "gentle", narrative: ["Lie on your back.", "Hug your knees to your chest gently.", "Rock side to side slowly.", "Let your spine decompress.", "You can also figure-four stretch here if you want.", "No rush. Just let gravity work."] },
+    shoulder_release: { id: "shoulder_release", name: "Shoulder Release", duration: 60, description: "Release tight shoulders.", bodyRegion: "shoulders", intensity: "gentle", narrative: ["Sit or stand tall.", "Lift both shoulders up toward your ears.", "Hold for a moment.", "Drop them down with a sigh.", "Do this slowly, a few times.", "Feel the release."] }
+};
+
+export function getMovementById(id: string): Movement | null {
+    return movementLibrary[id] || null;
+}
+
+export function getMovementsForRegion(region: string): Movement[] {
+    return Object.values(movementLibrary).filter((m) => m.bodyRegion === region);
+}
+
+export function getRandomMovement(): Movement {
+    const movements = Object.values(movementLibrary);
+    return movements[Math.floor(Math.random() * movements.length)];
+}
