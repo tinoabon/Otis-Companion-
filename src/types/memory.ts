@@ -1,0 +1,35 @@
+// src/types/memory.ts
+
+export interface DailyMemory {
+    date: string;
+    userName: string;
+    messages: any[];
+    notes?: string[]; // Topics, important info from today
+  movedToday?: boolean;
+    lastExerciseType?: string;
+}
+
+export interface UserProfile {
+    name: string;
+    joinDate: string;
+    attributes: {
+      workType?: string; // e.g., "clinic", "desk", "physical"
+      familyStatus?: string;
+      interests?: string[];
+      injuries?: string[];
+      goals?: string[];
+    };
+}
+
+export interface LongTermMemory {
+    profile: UserProfile;
+    conversationHistory: {
+      date: string;
+      summary: string;
+    }[];
+    patterns: {
+      frequentComplaints?: string[];
+      exercisesRespondsWellTo?: string[];
+      typicalMood?: string;
+    };
+}
