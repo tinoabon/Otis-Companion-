@@ -1,7 +1,6 @@
 // src/services/Storage.ts
 
 import { DailyMemory, UserProfile } from "../types/memory";
-import { Message } from "../types/conversation";
 
 const STORAGE_PREFIX = "otis_";
 
