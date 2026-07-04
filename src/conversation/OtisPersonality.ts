@@ -132,7 +132,7 @@ export class OtisPersonality {
 
         conversationHistory: Message[],
 
-        lastMovementTime?: Date
+        _lastMovementTime?: Date
 
       ): string {
 
@@ -196,7 +196,7 @@ export class OtisPersonality {
 
   }
 
-  private acknowledgeBody(userMessage: string, tone: string): string {
+  private acknowledgeBody(_userMessage: string, _tone: string): string {
 
       const acknowledges = [
 
@@ -232,7 +232,7 @@ export class OtisPersonality {
 
   }
 
-  private respondToLife(userMessage: string, tone: string): string {
+  private respondToLife(_userMessage: string, _tone: string): string {
 
       const responses = [
 
@@ -324,7 +324,7 @@ export class OtisPersonality {
 
         conversationHistory: Message[],
 
-        lastMovementTime?: Date
+        _lastMovementTime?: Date
 
       ): boolean {
 
