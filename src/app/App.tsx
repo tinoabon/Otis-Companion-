@@ -396,7 +396,7 @@ export default function App() {
                   addOtisMessage(response, 800);
                   if (otisEngine.current.shouldRecommendMovement(text, messages)) {
                             setTimeout(() => {
-                                        const movementMessage = otisEngine.current.getMovementMessage(text);
+                                        const movementMessage = otisEngine.current.getMovementRecommendation(text);
                                         addOtisMessage(movementMessage, 800);
                                         setTimeout(() => {
                                                       const movements = Object.values(MOVEMENTS);
@@ -478,7 +478,7 @@ export default function App() {
                                                 disabled={!inputValue.trim()}
                                                 className="send-button"
                                               >
-                                              →
+                                              â
                                   </button>
                         </div>
                 </div>
