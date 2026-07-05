@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import "../App.css";
+import { IntentDetector } from "../conversation/IntentDetector";
+
+import { RelationshipTracker } from "../conversation/RelationshipTracker";
+
+import { MemoryManager } from "../conversation/MemoryManager";
+
+import { ClaudeService } from "../services/ClaudeService";
+
+import { RelationshipStage } from "../types/engine";
 
 interface Message {
     id: string;
@@ -24,176 +33,11 @@ interface Movement {
     narrative: string[];
 }
 
-class OtisEngine {
-  private recentResponses: string[] = [];
-  private maxRecentResponses = 5;
-
-  private getRecentTopics(conversationHistory: Message[]): string[] {
-    const topics: string[] = [];
-    const recentMessages = conversationHistory.slice(-5);
-
-    const topicKeywords = {
-      work: ["work", "clinic", "patients", "meeting", "busy", "day", "office"],
-      body: ["neck", "back", "hips", "shoulders", "sore", "stiff", "tight", "pain", "ache"],
-      mood: ["tired", "exhausted", "stressed", "anxious", "calm", "good", "great"],
-      exercise: ["move", "stretch", "exercise", "mobility", "5k", "trail"],
-      family: ["family", "kids", "daughter", "son", "wife", "husband", "partner"],
-      weekend: ["4th", "fireworks", "weekend", "holiday"]
-    };
-
-    recentMessages.forEach((msg) => {
-      const lower = msg.content.toLowerCase();
-      Object.entries(topicKeywords).forEach(([topic, keywords]) => {
-        if (keywords.some((k) => lower.includes(k)) && !topics.includes(topic)) {
-          topics.push(topic);
-        }
-      });
-    });
-
-    return topics;
-  }
-
-  private buildResponse(
-    userMessage: string,
-    topics: string[],
-    conversationHistory: Message[]
-  ): string {
-    const lower = userMessage.toLowerCase();
-
-    // Specific observations based on what they said
-    if (lower.includes("back") && lower.includes("floor")) {
-      return "Floor work hits different. Your spine probably felt that release. How is it feeling now?";
-    }
-    if (lower.includes("spinal mobility")) {
-      return "Disciplined. On a holiday weekend too. That actually makes it count more.";
-    }
-    if (lower.includes("4th") || lower.includes("fireworks")) {
-      return "Keeping it lowkey with fireworks sounds solid. Rest is the move.";
-    }
-    if (lower.includes("promote") || lower.includes("extension")) {
-      return "Smart thinking on distribution. Where does your real audience hang out?";
-    }
-    if (lower.includes("reddit")) {
-      return "Reddit does not hold back. But that is where honest feedback lives too.";
-    }
-    if (lower.includes("intake") || lower.includes("summaries")) {
-      return "Content that saves time hits different. People respect efficiency.";
-    }
-
-    // Acknowledge accomplishments warmly
-    if (lower.includes("did my") && (lower.includes("mobility") || lower.includes("spinal"))) {
-      return "That matters. Especially on a holiday weekend. You are showing up for yourself.";
-    }
-
-    // Respond to emotional statements
-    if (lower.includes("tired") || lower.includes("exhausted")) {
-      return "Rest is not lazy. Your body is asking for something. What would help?";
-    }
-    if (lower.includes("stress") || lower.includes("anxiety")) {
-      return "That is heavy. Movement helps, but so does just stopping. What do you need right now?";
-    }
-
-    // Ask thoughtful follow-ups based on topics
-    if (topics.includes("body") && !lower.includes("move")) {
-      return "Your body is talking. Want to listen to it together?";
-    }
-    if (topics.includes("work") && conversationHistory.length > 6) {
-      return "With all that going on, your body probably needs some attention.";
-    }
-    if (lower.includes("thank you") || lower.includes("thanks")) {
-      return "You earned it. Enjoy the quiet.";
-    }
-
-    // Natural, curious defaults (not robotic)
-    if (lower.includes("?")) {
-      const questions = [
-        "That is a good question. What made you think about it?",
-        "Interesting. Where are you leaning?",
-        "What does your gut say?"
-      ];
-      return questions[Math.floor(Math.random() * questions.length)];
-    }
-
-    // General engagement (fewer, more natural)
-    const engagementResponses = [
-      "Tell me more about that.",
-      "Yeah. What else is happening?",
-      "Makes sense.",
-      "How is that sitting with you?"
-    ];
-
-    // Avoid repeating recent responses
-    let response = engagementResponses[Math.floor(Math.random() * engagementResponses.length)];
-    while (this.recentResponses.includes(response) && engagementResponses.length > 1) {
-      response = engagementResponses[Math.floor(Math.random() * engagementResponses.length)];
-    }
-
-    this.trackResponse(response);
-    return response;
-  }
-
-  private trackResponse(response: string): void {
-    this.recentResponses.push(response);
-    if (this.recentResponses.length > this.maxRecentResponses) {
-      this.recentResponses.shift();
-    }
-  }
-
-  generateResponse(
-    userMessage: string,
-    conversationHistory: Message[]
-  ): string {
-    // First message - getting their name
-    if (conversationHistory.length === 1) {
-      return `Nice to meet you, ${userMessage.trim()}. What brings you by today?`;
-    }
-
-    // Second message - returning user greeting (if new day)
-    if (conversationHistory.length === 2 && conversationHistory[0].role === "user") {
-      const greetings = [
-        "Good to see you again. What is going on?",
-        "Morning. How are you?",
-        "Hey. How are things?"
-      ];
-      return greetings[Math.floor(Math.random() * greetings.length)];
-    }
-
-    // Get recent topics for context
-    const topics = this.getRecentTopics(conversationHistory);
-
-    // Build response based on conversation context
-    const response = this.buildResponse(userMessage, topics, conversationHistory);
-    this.trackResponse(response);
-
-    return response;
-  }
-
-  shouldRecommendMovement(
-    userMessage: string,
-    conversationHistory: Message[]
-  ): boolean {
-    const lower = userMessage.toLowerCase();
-    const bodyKeywords = ["neck", "back", "hips", "sore", "stiff", "tight", "pain"];
-    const mentionsBody = bodyKeywords.some((k) => lower.includes(k));
-
-    // Only recommend if they mention body AND conversation is flowing
-    return mentionsBody && conversationHistory.length > 6;
-  }
-
-  getMovementRecommendation(userMessage: string): string {
-    const lower = userMessage.toLowerCase();
-    if (lower.includes("hip")) {
-      return "Your hips probably need some love. Want to spend 90 seconds opening them up?";
-    }
-    if (lower.includes("neck") || lower.includes("head")) {
-      return "Your neck is asking for attention. Ready to loosen it up?";
-    }
-    if (lower.includes("back") || lower.includes("spine")) {
-      return "Your back could use some movement. Let us spend a few minutes together.";
-    }
-    return "Your body is ready to move. Want to do something together?";
-  }
-}
+// Initialize services
+const intentDetector = new IntentDetector();
+const relationshipTracker = new RelationshipTracker();
+const memoryManager = new MemoryManager();
+const claudeService = new ClaudeService();
 
 const MOVEMENTS: Record<string, Movement> = {
     hip_opener: {
