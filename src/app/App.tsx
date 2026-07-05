@@ -143,6 +143,7 @@ export default function App() {
     const [inputValue, setInputValue] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [showExercise, setShowExercise] = useState<Movement | null>(null);
+    const [userContext, setUserContext] = useState<any>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const otisEngine = useRef(new OtisEngine());
   
@@ -205,63 +206,61 @@ export default function App() {
           }, delay);
     };
   
-    const handleSendMessage = () => {
-          if (!inputValue.trim()) return;
-          const text = inputValue.trim();
-          setInputValue("");
-          if (!userName) {
-                  setUserName(text);
-                  addMessage("user", text);
-                  setTimeout(() => {
-                            addOtisMessage(
-                                        `Nice to meet you, ${text}. What is going on today?`,
-                                        800
-                                      );
-                  }, 300);
-                  const today = Storage.getToday();
-                  Storage.saveDailyMemory({
-                            date: today,
-                            userName: text,
-                            messages: [
-                              {
-                                            id: Math.random().toString(),
-                                            role: "user",
-                                            content: text,
-                                            type: "text",
-                                            timestamp: new Date()
-                              }
-                                      ]
-                  });
-                  return;
-          }
-          addMessage("user", text);
-          setTimeout(() => {
-                  const response = otisEngine.current.generateResponse(text, messages);
-                  addOtisMessage(response, 800);
-                  if (otisEngine.current.shouldRecommendMovement(text, messages)) {
-                            setTimeout(() => {
-                                        const movementMessage = otisEngine.current.getMovementRecommendation(text);
-                                        addOtisMessage(movementMessage, 800);
-                                        setTimeout(() => {
-                                                      const movements = Object.values(MOVEMENTS);
-                                                      const suggested = movements[Math.floor(Math.random() * movements.length)];
-                                                      setShowExercise(suggested);
-                                        }, 1500);
-                            }, 1200);
-                  }
-          }, 500);
-          const today = Storage.getToday();
-          const memory = Storage.loadDailyMemory(today);
-          if (memory && userName) {
-                  memory.messages.push({
-                            id: Math.random().toString(),
-                            role: "user",
-                            content: text,
-                            type: "text",
-                            timestamp: new Date()
-                  });
-                  Storage.saveDailyMemory(memory);
-          }
+    const handleSendMessage = async () => {
+        if (!inputValue.trim() || !userContext) return;
+
+        const text = inputValue.trim();
+        setInputValue("");
+
+        // Getting name
+        if (!userName) {
+            setUserName(text);
+            addMessage("user", text);
+
+            const newContext = memoryManager.loadUserContext(text, null);
+            newContext.relationshipStage = relationshipTracker.calculateStage(newContext.conversationCount, 0);
+            memoryManager.saveUserContext(newContext);
+            setUserContext(newContext);
+
+            setTimeout(() => {
+                addOtisMessage(`Nice to meet you, ${text}. What brings you by today?`, 800);
+            }, 300);
+            return;
+        }
+
+        // Regular conversation
+        addMessage("user", text);
+
+        // Detect intent
+        const intent = intentDetector.detect(text, messages);
+
+        // Update user context with new information
+        let updatedContext = memoryManager.updateMemoryFromConversation(userContext, text);
+        updatedContext.relationshipStage = relationshipTracker.calculateStage(
+            updatedContext.conversationCount,
+            updatedContext.daysKnown
+        );
+        setUserContext(updatedContext);
+        memoryManager.saveUserContext(updatedContext);
+
+        // Build conversation history for Claude
+        const conversationHistory = messages.map((msg) => ({
+            role: msg.role === "user" ? "user" : "assistant",
+            content: msg.content
+        }));
+
+        // Call Claude to generate response
+        setTimeout(async () => {
+            setIsTyping(true);
+            const response = await claudeService.generateResponse(
+                text,
+                updatedContext,
+                intent,
+                conversationHistory
+            );
+            addMessage("otis", response);
+            setIsTyping(false);
+        }, 500);
     };
   
     return (
