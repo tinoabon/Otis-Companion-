@@ -2,7 +2,7 @@
 import { Intent, AnalyzedMessage } from "../types/engine";
 
 export class IntentDetector {
-  detect(message: string, conversationHistory: any[]): AnalyzedMessage {
+  detect(message: string, _conversationHistory: any[]): AnalyzedMessage {
     const lower = message.toLowerCase();
     let intent = Intent.Unknown;
 
