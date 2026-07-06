@@ -1,5 +1,5 @@
 // src/conversation/RelationshipTracker.ts
-import { RelationshipStage, UserContext } from "../types/engine";
+import { RelationshipStage } from "../types/engine";
 
 export class RelationshipTracker {
   calculateStage(conversationCount: number, daysKnown: number): RelationshipStage {
