@@ -3,9 +3,7 @@ import { AnalyzedMessage } from "../types/engine";
 import { UserContext } from "../types/engine";
 
 export class ClaudeService {
-  private apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-
-  async generateResponse(
+    async generateResponse(
     userMessage: string,
     userContext: UserContext,
     _messageIntent: AnalyzedMessage,
@@ -25,12 +23,10 @@ export class ClaudeService {
     ];
 
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/claude", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "x-api-key": this.apiKey || "",
-          "anthropic-version": "2023-06-01"
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           model: "claude-opus-4-6",
