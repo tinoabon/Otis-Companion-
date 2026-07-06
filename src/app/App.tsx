@@ -204,7 +204,7 @@ export default function App() {
     };
   
     const handleSendMessage = async () => {
-        if (!inputValue.trim() || !userContext) return;
+        if (!inputValue.trim()) return;
 
         const text = inputValue.trim();
         setInputValue("");
@@ -224,6 +224,8 @@ export default function App() {
             }, 300);
             return;
         }
+
+        if (!userContext) return;
 
         // Regular conversation
         addMessage("user", text);
