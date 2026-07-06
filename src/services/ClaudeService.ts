@@ -1,14 +1,14 @@
 // src/services/ClaudeService.ts
-import { ClaudeContext, AnalyzedMessage } from "../types/engine";
+import { AnalyzedMessage } from "../types/engine";
 import { UserContext } from "../types/engine";
 
 export class ClaudeService {
-  private apiKey = process.env.REACT_APP_ANTHROPIC_API_KEY;
+  private apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
   async generateResponse(
     userMessage: string,
     userContext: UserContext,
-    messageIntent: AnalyzedMessage,
+    _messageIntent: AnalyzedMessage,
     conversationHistory: Array<{ role: string; content: string }>
   ): Promise<string> {
     const otisSystemPrompt = this.buildSystemPrompt(userContext);
