@@ -1,8 +1,8 @@
 // src/conversation/MemoryManager.ts
-import { UserContext, UserMemory, CurrentConversation, RelationshipStage } from "../types/engine";
+import { UserContext, RelationshipStage } from "../types/engine";
 
 export class MemoryManager {
-  loadUserContext(userName: string, dailyMemory: any): UserContext {
+  loadUserContext(userName: string, _dailyMemory: any): UserContext {
     const stored = localStorage.getItem(`otis_user_${userName}`);
 
     if (stored) {
@@ -12,7 +12,6 @@ export class MemoryManager {
     }
 
     // New user
-    const today = new Date();
     return {
       name: userName,
       relationshipStage: RelationshipStage.Stranger,
