@@ -7,6 +7,9 @@ import { RelationshipTracker } from "../conversation/RelationshipTracker";
 import { MemoryManager } from "../conversation/MemoryManager";
 
 import { ClaudeService } from "../services/ClaudeService";
+import { ReminderService } from "../services/ReminderService";
+import { NotificationService } from "../services/NotificationService";
+import { ReminderType, ReminderFrequency } from "../types/reminders";
 
 interface Message {
     id: string;
@@ -178,6 +181,36 @@ export default function App() {
                   }, 300);
           }
     }, []);
+
+        // Check for due reminders every minute
+        useEffect(() => {
+            if (!userName) return;
+
+            const reminderService = new ReminderService();
+            const checkReminders = () => {
+                const dueReminders = reminderService.getDueReminders(userName);
+
+                dueReminders.forEach((reminder) => {
+                    addOtisMessage(reminder.message, 500);
+
+                    if (document.hidden) {
+                        NotificationService.sendReminderNotification(reminder.message);
+                    }
+
+                    reminderService.completeReminder(reminder.id);
+                });
+            };
+
+            checkReminders();
+            const interval = setInterval(checkReminders, 60000);
+
+            return () => clearInterval(interval);
+        }, [userName]);
+
+        // Request notification permission on first load
+        useEffect(() => {
+            NotificationService.requestPermission();
+        }, []);
   
     const addMessage = (
           role: "user" | "otis",
@@ -222,6 +255,10 @@ export default function App() {
             setTimeout(() => {
                 addOtisMessage(`Nice to meet you, ${text}. What brings you by today?`, 800);
             }, 300);
+
+            // Auto-setup reminders for new users
+            const reminderService = new ReminderService();
+            reminderService.autoScheduleReminders(text, {});
             return;
         }
 
