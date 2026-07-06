@@ -9,7 +9,6 @@ import { MemoryManager } from "../conversation/MemoryManager";
 import { ClaudeService } from "../services/ClaudeService";
 import { ReminderService } from "../services/ReminderService";
 import { NotificationService } from "../services/NotificationService";
-import { ReminderType, ReminderFrequency } from "../types/reminders";
 
 interface Message {
     id: string;
