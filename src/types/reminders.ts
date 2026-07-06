@@ -39,9 +39,9 @@ export interface ReminderConfig {
   userId: string;
   enablePushNotifications: boolean;
   preferredTimes: {
-    morning?: string; // "07:00"
-    afternoon?: string; // "14:00"
-    evening?: string; // "19:00"
+    morning?: string;
+    afternoon?: string;
+    evening?: string;
   };
   frequencyByType: {
     [key in ReminderType]?: ReminderFrequency;
