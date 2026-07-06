@@ -118,7 +118,7 @@ export class ReminderService {
     return data ? JSON.parse(data) : null;
   }
 
-  autoScheduleReminders(userId: string, userProfile: any): void {
+  autoScheduleReminders(userId: string, _userProfile: any): void {
     const now = new Date();
 
     const morningTime = new Date(now);
