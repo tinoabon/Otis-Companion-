@@ -8,8 +8,6 @@ import { MemoryManager } from "../conversation/MemoryManager";
 
 import { ClaudeService } from "../services/ClaudeService";
 
-import { RelationshipStage } from "../types/engine";
-
 interface Message {
     id: string;
     role: "user" | "otis";
@@ -39,7 +37,7 @@ const relationshipTracker = new RelationshipTracker();
 const memoryManager = new MemoryManager();
 const claudeService = new ClaudeService();
 
-const MOVEMENTS: Record<string, Movement> = {
+export const MOVEMENTS: Record<string, Movement> = {
     hip_opener: {
           id: "hip_opener",
           name: "Hip Opening",
@@ -145,7 +143,6 @@ export default function App() {
     const [showExercise, setShowExercise] = useState<Movement | null>(null);
     const [userContext, setUserContext] = useState<any>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const otisEngine = useRef(new OtisEngine());
   
     const scrollToBottom = () => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
