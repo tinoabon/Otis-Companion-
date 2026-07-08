@@ -198,6 +198,41 @@ export default function App() {
 
                     reminderService.completeReminder(reminder.id);
                 });
+                                // Natural check-in if the user has been away for a while
+                const lastActivityRaw = localStorage.getItem(`otis_last_activity_${userName}`);
+                if (lastActivityRaw) {
+                    const now = new Date();
+                    const hour = now.getHours();
+                    const isNightHours = hour >= 21 || hour < 4;
+                    const hoursSinceActivity = (now.getTime() - new Date(lastActivityRaw).getTime()) / (1000 * 60 * 60);
+                
+                    const today = Storage.getToday();
+                    const countKey = `otis_checkin_count_${userName}_${today}`;
+                    const lastCheckInKey = `otis_last_auto_checkin_${userName}`;
+                    const checkInsToday = parseInt(localStorage.getItem(countKey) || "0", 10);
+                    const lastCheckInRaw = localStorage.getItem(lastCheckInKey);
+                    const hoursSinceLastCheckIn = lastCheckInRaw
+                        ? (now.getTime() - new Date(lastCheckInRaw).getTime()) / (1000 * 60 * 60)
+                        : Infinity;
+                
+                    if (!isNightHours && hoursSinceActivity >= 4 && checkInsToday < 2 && hoursSinceLastCheckIn >= 3) {
+                        const checkIns = [
+                            "Hey, it's been a bit. How's your day going?",
+                            "Just checking in. Everything good?",
+                            "Thinking of you. How are you feeling?"
+                        ];
+                        const checkInMessage = checkIns[Math.floor(Math.random() * checkIns.length)];
+                
+                        addOtisMessage(checkInMessage, 500);
+                
+                        if (document.hidden) {
+                            NotificationService.sendReminderNotification(checkInMessage);
+                        }
+                
+                        localStorage.setItem(countKey, String(checkInsToday + 1));
+                        localStorage.setItem(lastCheckInKey, now.toISOString());
+                    }
+                }
             };
 
             checkReminders();
@@ -245,6 +280,7 @@ export default function App() {
         if (!userName) {
             setUserName(text);
             addMessage("user", text);
+            localStorage.setItem(`otis_last_activity_${text}`, new Date().toISOString());
 
             const newContext = memoryManager.loadUserContext(text, null);
             newContext.relationshipStage = relationshipTracker.calculateStage(newContext.conversationCount, 0);
@@ -265,6 +301,7 @@ export default function App() {
 
         // Regular conversation
         addMessage("user", text);
+        localStorage.setItem(`otis_last_activity_${userName}`, new Date().toISOString());
 
         // Detect intent
         const intent = intentDetector.detect(text, messages);
