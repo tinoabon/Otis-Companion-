@@ -79,6 +79,79 @@ export class ReminderService {
     }
   }
 
+    skipReminder(reminderId: string): void {
+          for (let i = 0; i < localStorage.length; i++) {
+                  const key = localStorage.key(i);
+                  if (key && key.includes(reminderId)) {
+                            const data = localStorage.getItem(key);
+                            if (data) {
+                                        const reminder = JSON.parse(data);
+                                        reminder.skipped = true;
+                                        reminder.skippedAt = new Date().toISOString();
+                                        localStorage.setItem(key, JSON.stringify(reminder));
+                                        return;
+                            }
+                  }
+          }
+    }
+
+    recordOutcome(userId: string, outcome: "completed" | "skipped"): void {
+          const today = new Date().toISOString().split("T")[0];
+          const key = "otis_adherence_" + userId + "_" + today;
+          const existing = localStorage.getItem(key);
+          const log = existing ? JSON.parse(existing) : { completed: 0, skipped: 0 };
+          log[outcome] = (log[outcome] || 0) + 1;
+          localStorage.setItem(key, JSON.stringify(log));
+    }
+
+    getStreak(userId: string): { currentStreak: number; totalCompleted: number; totalSkipped: number } {
+          let currentStreak = 0;
+          let totalCompleted = 0;
+          let totalSkipped = 0;
+
+          for (let i = 0; i < localStorage.length; i++) {
+                  const key = localStorage.key(i);
+                  if (key && key.startsWith("otis_adherence_" + userId + "_")) {
+                            const data = JSON.parse(localStorage.getItem(key) || "{}");
+                            totalCompleted += data.completed || 0;
+                            totalSkipped += data.skipped || 0;
+                  }
+          }
+
+          const day = new Date();
+          let checking = true;
+          while (checking) {
+                  const dateStr = day.toISOString().split("T")[0];
+                  const key = "otis_adherence_" + userId + "_" + dateStr;
+                  const data = localStorage.getItem(key);
+                  if (data && JSON.parse(data).completed > 0) {
+                            currentStreak++;
+                            day.setDate(day.getDate() - 1);
+                  } else {
+                            checking = false;
+                  }
+          }
+
+          return { currentStreak, totalCompleted, totalSkipped };
+    }
+
+    clearScheduledReminders(userId: string): void {
+          const toRemove: string[] = [];
+          for (let i = 0; i < localStorage.length; i++) {
+                  const key = localStorage.key(i);
+                  if (key && key.startsWith(this.storageKey + userId)) {
+                            const data = localStorage.getItem(key);
+                            if (data) {
+                                        const reminder = JSON.parse(data);
+                                        if (!reminder.completed && !reminder.skipped) {
+                                                      toRemove.push(key);
+                                        }
+                            }
+                  }
+          }
+          toRemove.forEach((key) => localStorage.removeItem(key));
+    }
+
   private saveReminder(reminder: Reminder): void {
     const key = this.storageKey + reminder.userId + "_" + reminder.id;
     localStorage.setItem(key, JSON.stringify(reminder));
@@ -118,43 +191,46 @@ export class ReminderService {
     return data ? JSON.parse(data) : null;
   }
 
-  autoScheduleReminders(userId: string, _userProfile: any): void {
-    const now = new Date();
+autoScheduleReminders(userId: string, config?: ReminderConfig | null): void {
+      const now = new Date();
 
-    const morningTime = new Date(now);
-    morningTime.setHours(7, 0, 0, 0);
-    if (morningTime < now) morningTime.setDate(morningTime.getDate() + 1);
+      const parseTime = (value: string | undefined, fallbackHour: number): Date => {
+              const time = new Date(now);
+              if (value) {
+                        const parts = value.split(":").map(Number);
+                        time.setHours(parts[0], parts[1] || 0, 0, 0);
+              } else {
+                        time.setHours(fallbackHour, 0, 0, 0);
+              }
+              if (time < now) time.setDate(time.getDate() + 1);
+              return time;
+      };
 
-    this.createReminder(
-      userId,
-      ReminderType.MobilityExercise,
-      "Good morning. Ready to wake up your body?",
-      morningTime,
-      ReminderFrequency.Daily
-    );
+      const morningTime = parseTime(config?.preferredTimes?.morning, 7);
+      this.createReminder(
+              userId,
+              ReminderType.MobilityExercise,
+              "Good morning. Ready to wake up your body?",
+              morningTime,
+              config?.frequencyByType?.[ReminderType.MobilityExercise] || ReminderFrequency.Daily
+            );
 
-    const afternoonTime = new Date(now);
-    afternoonTime.setHours(14, 0, 0, 0);
-    if (afternoonTime < now) afternoonTime.setDate(afternoonTime.getDate() + 1);
+      const afternoonTime = parseTime(config?.preferredTimes?.afternoon, 14);
+      this.createReminder(
+              userId,
+              ReminderType.CheckIn,
+              "How is your body feeling halfway through the day?",
+              afternoonTime,
+              config?.frequencyByType?.[ReminderType.CheckIn] || ReminderFrequency.Daily
+            );
 
-    this.createReminder(
-      userId,
-      ReminderType.CheckIn,
-      "How is your body feeling halfway through the day?",
-      afternoonTime,
-      ReminderFrequency.Daily
-    );
-
-    const eveningTime = new Date(now);
-    eveningTime.setHours(18, 0, 0, 0);
-    if (eveningTime < now) eveningTime.setDate(eveningTime.getDate() + 1);
-
-    this.createReminder(
-      userId,
-      ReminderType.Recovery,
-      "Wind down time. Want to spend a few minutes releasing tension?",
-      eveningTime,
-      ReminderFrequency.Daily
-    );
-  }
+      const eveningTime = parseTime(config?.preferredTimes?.evening, 18);
+      this.createReminder(
+              userId,
+              ReminderType.Recovery,
+              "Wind down time. Want to spend a few minutes releasing tension?",
+              eveningTime,
+              config?.frequencyByType?.[ReminderType.Recovery] || ReminderFrequency.Daily
+            );
+}
 }
