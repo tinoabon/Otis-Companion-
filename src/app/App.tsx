@@ -101,6 +101,9 @@ class Storage {
   }
 }
 
+// Stable, name-independent key so we can restore the user's profile on startup without asking their name again
+const CURRENT_USER_KEY = "otis_current_user";
+
 const TypingIndicator: React.FC = () => (
     <div className="typing-indicator">
         <span></span>
@@ -157,6 +160,7 @@ export default function App() {
     useEffect(() => {
           const today = Storage.getToday();
           const stored = Storage.loadDailyMemory(today);
+            const savedUserName = localStorage.getItem(CURRENT_USER_KEY);
           if (stored) {
                   setUserName(stored.userName);
                   setMessages(
@@ -174,6 +178,25 @@ export default function App() {
                             const greeting = greetings[Math.floor(Math.random() * greetings.length)];
                             addOtisMessage(greeting);
                   }, 500);
+          } else if (savedUserName) {
+              setUserName(savedUserName);
+              const restoredContext = memoryManager.loadUserContext(savedUserName, null);
+              restoredContext.relationshipStage = relationshipTracker.calculateStage(
+                  restoredContext.conversationCount,
+                  restoredContext.daysKnown
+                  );
+              memoryManager.saveUserContext(restoredContext);
+              setUserContext(restoredContext);
+              
+              setTimeout(() => {
+                  const greetings = [
+                      "Morning. How are you?",
+                      "Good to see you again. How are things?",
+                      "Hey. What is going on?"
+                      ];
+                  const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+                  addOtisMessage(greeting);
+              }, 500);
           } else {
                   setTimeout(() => {
                             addOtisMessage("Hi there. What should I call you?");
@@ -279,6 +302,7 @@ export default function App() {
         // Getting name
         if (!userName) {
             setUserName(text);
+            localStorage.setItem(CURRENT_USER_KEY, text);
             addMessage("user", text);
             localStorage.setItem(`otis_last_activity_${text}`, new Date().toISOString());
 
