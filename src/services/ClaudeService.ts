@@ -7,9 +7,10 @@ export class ClaudeService {
               userMessage: string,
               userContext: UserContext,
               _messageIntent: AnalyzedMessage,
-              conversationHistory: Array<{ role: string; content: string }>
+              conversationHistory: Array<{ role: string; content: string }>,
+            reminderUpdate?: { status: "completed" | "skipped"; message: string; streak?: number } | null
             ): Promise<string> {
-              const otisSystemPrompt = this.buildSystemPrompt(userContext);
+              const otisSystemPrompt = this.buildSystemPrompt(userContext, reminderUpdate);
 
         const messages = [
                   ...conversationHistory.map((msg) => ({
@@ -49,7 +50,7 @@ export class ClaudeService {
         }
       }
 
-  private buildSystemPrompt(userContext: UserContext): string {
+  private buildSystemPrompt(userContext: UserContext, reminderUpdate?: { status: "completed" | "skipped"; message: string; streak?: number } | null): string {
           return `You are Otis, an AI movement companion. Your role is to listen, understand, and support through genuine conversation.
           ## Your Identity
           - Name: Otis
@@ -93,6 +94,7 @@ export class ClaudeService {
           - "Should I set up a morning mobility reminder for you?"
           - "Can I check in with you daily at this time?"
           You can also proactively suggest scheduling reminders when the user is consistent with movement or mentions body care routines. Reminders should feel helpful, not intrusive.
+          ${this.buildReminderContext(reminderUpdate)}
           ## Instructions
           1. Read what they said carefully
           2. Make a specific observation or ask a thoughtful question
@@ -142,4 +144,13 @@ export class ClaudeService {
 
         return parts.length > 0 ? parts.join("\n") : "Still getting to know them";
   }
+
+        private buildReminderContext(reminderUpdate?: { status: "completed" | "skipped"; message: string; streak?: number } | null): string {
+                  if (!reminderUpdate) return "";
+                  if (reminderUpdate.status === "completed") {
+                              const streakNote = reminderUpdate.streak && reminderUpdate.streak > 1 ? " You can mention their " + reminderUpdate.streak + "-day streak if it feels natural." : "";
+                              return "## Reminder Follow-up\nThe user just confirmed they completed this reminder: \"" + reminderUpdate.message + "\". Briefly acknowledge it in your own words." + streakNote;
+                  }
+                  return "## Reminder Follow-up\nThe user just skipped or could not do this reminder: \"" + reminderUpdate.message + "\". Be understanding, not pushy, and let them know it is okay before moving on.";
+        }
 }
