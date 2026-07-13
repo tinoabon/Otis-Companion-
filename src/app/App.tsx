@@ -9,6 +9,9 @@ import { MemoryManager } from "../conversation/MemoryManager";
 import { ClaudeService } from "../services/ClaudeService";
 import { ReminderService } from "../services/ReminderService";
 import { NotificationService } from "../services/NotificationService";
+import { ReminderType, ReminderFrequency } from "../types/reminders";
+import { ReminderSettings } from "./ReminderSettings";
+import { getMovementsForRegion } from "../movement/MovementLibrary";
 
 interface Message {
     id: string;
@@ -38,6 +41,7 @@ const intentDetector = new IntentDetector();
 const relationshipTracker = new RelationshipTracker();
 const memoryManager = new MemoryManager();
 const claudeService = new ClaudeService();
+const reminderService = new ReminderService();
 
 export const MOVEMENTS: Record<string, Movement> = {
     hip_opener: {
@@ -147,6 +151,7 @@ export default function App() {
     const [isTyping, setIsTyping] = useState(false);
     const [showExercise, setShowExercise] = useState<Movement | null>(null);
     const [userContext, setUserContext] = useState<any>(null);
+    const [showSettings, setShowSettings] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
   
     const scrollToBottom = () => {
@@ -208,19 +213,25 @@ export default function App() {
         useEffect(() => {
             if (!userName) return;
 
-            const reminderService = new ReminderService();
-            const checkReminders = () => {
+const checkReminders = () => {
                 const dueReminders = reminderService.getDueReminders(userName);
 
-                dueReminders.forEach((reminder) => {
-                    addOtisMessage(reminder.message, 500);
+dueReminders.forEach((reminder) => {
+    const pendingKey = `otis_pending_reminder_${userName}`;
+    const existingPendingId = localStorage.getItem(pendingKey);
+    if (existingPendingId && existingPendingId !== reminder.id) {
+        reminderService.skipReminder(existingPendingId);
+        reminderService.recordOutcome(userName, "skipped");
+    }
 
-                    if (document.hidden) {
-                        NotificationService.sendReminderNotification(reminder.message);
-                    }
+    addOtisMessage(reminder.message, 500);
 
-                    reminderService.completeReminder(reminder.id);
-                });
+    if (document.hidden) {
+        NotificationService.sendReminderNotification(reminder.message);
+    }
+
+    localStorage.setItem(pendingKey, reminder.id);
+});
                                 // Natural check-in if the user has been away for a while
                 const lastActivityRaw = localStorage.getItem(`otis_last_activity_${userName}`);
                 if (lastActivityRaw) {
@@ -316,8 +327,7 @@ export default function App() {
             }, 300);
 
             // Auto-setup reminders for new users
-            const reminderService = new ReminderService();
-            reminderService.autoScheduleReminders(text, {});
+            reminderService.autoScheduleReminders(text);
             return;
         }
 
@@ -329,6 +339,52 @@ export default function App() {
 
         // Detect intent
         const intent = intentDetector.detect(text, messages);
+
+        // Resolve any pending reminder based on this reply
+        const pendingKey = `otis_pending_reminder_${userName}`;
+        const pendingId = localStorage.getItem(pendingKey);
+        let reminderUpdate: { status: "completed" | "skipped"; message: string; streak?: number } | null = null;
+        if (pendingId) {
+            const pending = reminderService.getReminders(userName).find((r) => r.id === pendingId);
+            if (pending && !pending.completed && !pending.skipped) {
+                const lower = text.toLowerCase();
+                const doneWords = ["done", "did it", "finished", "yep", "yup", "just did", "already did"];
+                const skipWords = ["not yet", "later", "busy", "skip", "can't", "cant", "didn't", "didnt", "no"];
+                if (doneWords.some((w) => lower.includes(w))) {
+                    reminderService.completeReminder(pending.id);
+                    reminderService.recordOutcome(userName, "completed");
+                    const streak = reminderService.getStreak(userName);
+                    reminderUpdate = { status: "completed", message: pending.message, streak: streak.currentStreak };
+                    localStorage.removeItem(pendingKey);
+                } else if (skipWords.some((w) => lower.includes(w))) {
+                    reminderService.skipReminder(pending.id);
+                    reminderService.recordOutcome(userName, "skipped");
+                    reminderUpdate = { status: "skipped", message: pending.message };
+                    localStorage.removeItem(pendingKey);
+                }
+            }
+        }
+
+        // Proactively schedule a one-off movement reminder if the user mentions a sore/tight body part
+        if (intent.mentionsBody && intent.entities.length > 0) {
+            const regionMap: Record<string, string> = { neck: "neck", back: "back", hips: "hips" };
+            const region = intent.entities.map((e) => regionMap[e]).find((r) => r);
+            if (region) {
+                const suggestion = getMovementsForRegion(region)[0];
+                if (suggestion) {
+                    const followUp = new Date();
+                    followUp.setHours(followUp.getHours() + 2);
+                    reminderService.createReminder(
+                        userName,
+                        ReminderType.BodyAwareness,
+                        `Earlier you mentioned your ${region}. Want to try "${suggestion.name}" - ${suggestion.description}`,
+                        followUp,
+                        ReminderFrequency.Once,
+                        { bodyRegion: region }
+                        );
+                }
+            }
+        }
 
         // Update user context with new information
         let updatedContext = memoryManager.updateMemoryFromConversation(userContext, text);
@@ -352,7 +408,8 @@ export default function App() {
                 text,
                 updatedContext,
                 intent,
-                conversationHistory
+                conversationHistory,
+                reminderUpdate
             );
             addMessage("otis", response);
             setIsTyping(false);
@@ -364,7 +421,13 @@ export default function App() {
                 <div className="chat-container">
                         <div className="header">
                                   <h1 className="header-title">{userName || "Otis"}</h1>
+                            {userName && (
+              <button className="settings-button" onClick={() => setShowSettings(true)}>Settings</button>
+              )}
                         </div>
+                    {showSettings && userName && (
+              <ReminderSettings userId={userName} reminderService={reminderService} onClose={() => setShowSettings(false)} />
+              )}
                         <div className="messages-container">
                           {messages.map((msg) => (
                         <MessageBubble key={msg.id} message={msg} />
