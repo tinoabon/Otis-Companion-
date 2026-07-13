@@ -68,4 +68,5 @@ export interface ClaudeContext {
   messageIntent: AnalyzedMessage;
   conversationHistory: Array<{ role: string; content: string }>;
   otisPersonality: string;
+  reminderUpdate?: { status: "completed" | "skipped"; message: string; streak?: number } | null;
 }
