@@ -26,6 +26,8 @@ export interface Reminder {
   isActive: boolean;
   completed: boolean;
   completedAt?: Date;
+  skipped?: boolean;
+  skippedAt?: Date;
   context?: {
     relatedTopic?: string;
     bodyRegion?: string;
