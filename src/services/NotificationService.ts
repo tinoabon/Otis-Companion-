@@ -18,15 +18,25 @@ export class NotificationService {
     return false;
   }
 
-  static sendNotification(title: string, options?: NotificationOptions): void {
-    if (Notification.permission === "granted") {
-      new Notification(title, {
-        icon: "/otis-icon.png",
-        badge: "/otis-badge.png",
-        ...options
-      });
-    }
+static sendNotification(title: string, options?: NotificationOptions): void {
+  if (Notification.permission !== "granted") {
+    return;
   }
+
+  const payload: NotificationOptions = {
+    icon: "/otis-icon.png",
+    badge: "/otis-badge.png",
+    ...options
+  };
+
+  if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.ready.then((registration) => {
+      registration.showNotification(title, payload);
+    });
+  } else {
+    new Notification(title, payload);
+  }
+}
 
   static sendReminderNotification(reminderMessage: string): void {
     this.sendNotification("Otis", {
