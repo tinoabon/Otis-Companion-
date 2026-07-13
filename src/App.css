@@ -363,3 +363,76 @@ input:focus-visible {
       outline: 2px solid var(--accent-blue);
       outline-offset: 2px;
 }
+
+
+.settings-button {
+        background: transparent;
+        border: 1px solid var(--text-secondary);
+        color: var(--text-secondary);
+        border-radius: 999px;
+        padding: 0.35rem 0.9rem;
+        font-size: 0.85rem;
+        cursor: pointer;
+}
+
+.settings-button:hover {
+        border-color: var(--accent-blue);
+        color: var(--text-primary);
+}
+
+.settings-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+}
+
+.settings-panel {
+        background: var(--bg-secondary);
+        border: 1px solid var(--otis-bubble-border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        width: 90%;
+        max-width: 380px;
+        color: var(--text-primary);
+}
+
+.settings-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin: 0.85rem 0;
+        font-size: 0.95rem;
+}
+
+.settings-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        margin-top: 1.25rem;
+}
+
+.settings-save {
+        background: var(--accent-blue);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+}
+
+.settings-cancel {
+        background: transparent;
+        border: 1px solid var(--text-secondary);
+        color: var(--text-secondary);
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+}
