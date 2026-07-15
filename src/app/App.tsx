@@ -153,6 +153,7 @@ export default function App() {
     const [userContext, setUserContext] = useState<any>(null);
     const [showSettings, setShowSettings] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
   
     const scrollToBottom = () => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -309,6 +310,7 @@ dueReminders.forEach((reminder) => {
 
         const text = inputValue.trim();
         setInputValue("");
+        if (textareaRef.current) textareaRef.current.style.height = "auto";
 
         // Getting name
         if (!userName) {
@@ -462,19 +464,26 @@ dueReminders.forEach((reminder) => {
                                   <div ref={messagesEndRef} />
                         </div>
                         <div className="input-container">
-                                  <input
-                                                type="text"
-                                                value={inputValue}
-                                                onChange={(e) => setInputValue(e.target.value)}
-                                                onKeyDown={(e) => {
-                                                                if (e.key === "Enter") {
-                                                                                  handleSendMessage();
-                                                                }
-                                                }}
-                                                placeholder={userName ? "Tell me..." : "Your name?"}
-                                                className="input"
-                                                autoFocus
-                                              />
+
+                            <textarea
+                                ref={textareaRef}
+                                value={inputValue}
+                                onChange={(e) => {
+                                    setInputValue(e.target.value);
+                                    e.target.style.height = "auto";
+                                    e.target.style.height = Math.min(e.target.scrollHeight, 150) + "px";
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSendMessage();
+                                    }
+                                }}
+                                placeholder={userName ? "Tell me..." : "Your name?"}
+                                className="input"
+                                rows={1}
+                                autoFocus
+                                />
                                   <button
                                                 onClick={handleSendMessage}
                                                 disabled={!inputValue.trim()}
