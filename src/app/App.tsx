@@ -162,6 +162,14 @@ export default function App() {
     useEffect(() => {
           scrollToBottom();
     }, [messages, isTyping]);
+    useEffect(() => {
+        if (!userName) return;
+        Storage.saveDailyMemory({
+                date: Storage.getToday(),
+            userName,
+            messages,
+        });
+    }, [messages, userName]);
   
     useEffect(() => {
           const today = Storage.getToday();
