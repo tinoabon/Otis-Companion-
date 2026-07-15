@@ -267,6 +267,11 @@ html, body {
       font-family: var(--font-family);
       outline: none;
       transition: all 0.2s ease;
+      resize: none;
+      line-height: 1.4;
+      max-height: 150px;
+      overflow-y: auto;
+      font: inherit;
 }
 
 .input:focus {
