@@ -28,6 +28,8 @@ export interface Reminder {
   completedAt?: Date;
   skipped?: boolean;
   skippedAt?: Date;
+  delivered?: boolean;
+  deliveredAt?: Date;
   context?: {
     relatedTopic?: string;
     bodyRegion?: string;
