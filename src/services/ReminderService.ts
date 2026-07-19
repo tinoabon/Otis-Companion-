@@ -59,9 +59,26 @@ export class ReminderService {
       (r) =>
         r.isActive &&
         !r.completed &&
+        !r.delivered &&
         new Date(r.scheduledFor) <= now
     );
   }
+
+markDelivered(reminderId: string): void {
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.includes(reminderId)) {
+      const data = localStorage.getItem(key);
+      if (data) {
+        const reminder = JSON.parse(data);
+        reminder.delivered = true;
+        reminder.deliveredAt = new Date().toISOString();
+        localStorage.setItem(key, JSON.stringify(reminder));
+        return;
+      }
+    }
+  }
+}
 
   completeReminder(reminderId: string): void {
     for (let i = 0; i < localStorage.length; i++) {
