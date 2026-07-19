@@ -234,6 +234,7 @@ dueReminders.forEach((reminder) => {
     }
 
     addOtisMessage(reminder.message, 500);
+    reminderService.markDelivered(reminder.id);
 
     if (document.hidden) {
         NotificationService.sendReminderNotification(reminder.message);
@@ -358,8 +359,8 @@ dueReminders.forEach((reminder) => {
             const pending = reminderService.getReminders(userName).find((r) => r.id === pendingId);
             if (pending && !pending.completed && !pending.skipped) {
                 const lower = text.toLowerCase();
-                const doneWords = ["done", "did it", "finished", "yep", "yup", "just did", "already did"];
-                const skipWords = ["not yet", "later", "busy", "skip", "can't", "cant", "didn't", "didnt", "no"];
+                const doneWords = ["done", "did it", "finished", "yep", "yup", "yeah", "yes", "just did", "already did", "completed", "got it done", "all set"];
+const skipWords = ["not yet", "later", "busy", "skip", "can't", "cant", "didn't", "didnt", "no", "not today", "no time", "haven't", "havent"];
                 if (doneWords.some((w) => lower.includes(w))) {
                     reminderService.completeReminder(pending.id);
                     reminderService.recordOutcome(userName, "completed");
