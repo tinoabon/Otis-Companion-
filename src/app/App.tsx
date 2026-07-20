@@ -183,7 +183,11 @@ export default function App() {
                                         timestamp: new Date(m.timestamp)
                             }))
                           );
-                  setTimeout(() => {
+                  const restoredContext = memoryManager.loadUserContext(stored.userName, null);
+                  restoredContext.relationshipStage = relationshipTracker.calculateStage(restoredContext.conversationCount, restoredContext.daysKnown);
+                  memoryManager.saveUserContext(restoredContext);
+                  setUserContext(restoredContext);
+
                             const greetings = [
                                         "Morning. How are you?",
                                         "Good to see you again. How are things?",
