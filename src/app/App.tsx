@@ -188,11 +188,12 @@ export default function App() {
                   memoryManager.saveUserContext(restoredContext);
                   setUserContext(restoredContext);
 
-                            const greetings = [
+                  setTimeout(() => {
+                      const greetings = [
                                         "Morning. How are you?",
                                         "Good to see you again. How are things?",
                                         "Hey. What is going on?"
-                                      ];
+                                ];
                             const greeting = greetings[Math.floor(Math.random() * greetings.length)];
                             addOtisMessage(greeting);
                   }, 500);
